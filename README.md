@@ -7,8 +7,8 @@ A small web app for Beirut Football Academy to record which coaches attended eac
 ## What it does
 
 - **Coaches**: add all your coaches once. Type or paste the names, one per line. You can fix a misspelled name or remove a coach later; removed coaches keep their past attendance in reports.
-- **Calendar**: a month view where each day shows how many people came. Tap a day to see the whole list and tick who attended, then choose **Coach** or **Assistant** for each person (new ticks start with the role they had last time). There's also *All present* and *Clear day*. If someone ran more than one session that day, use − / +.
-- **Monthly report**: for each person, days attended, sessions as coach, sessions as assistant and the total, plus a day-by-day register (filled = coach, outlined A = assistant). Export to CSV (opens in Excel) or print.
+- **Calendar**: a month view where each day shows how many people came. Tap a day to see the whole list and tick who attended. Each ticked person has two counters, **Coach** and **Assistant**, so someone can do e.g. 1 session as coach and 1 as assistant on the same day. A new tick starts in the role the person had last time. There's also *All present* and *Clear day*.
+- **Monthly report**: for each person, days attended, sessions as coach, sessions as assistant and the total, plus a day-by-day register (filled = coach, outlined A = assistant, 1+1A = both). Export to CSV (opens in Excel) or print.
 - **Approve**: in the monthly report, approve each person's sessions (or *Approve all*) once they're checked. Approved sessions are locked for that month, and the database itself refuses changes. *Reopen* unlocks them if a correction is needed.
 - **Team PIN**: the first person to open the app creates a 4–8 digit PIN. Everyone else enters it once per device. It can be changed on the Coaches tab.
 

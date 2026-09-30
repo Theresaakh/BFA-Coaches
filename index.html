@@ -139,12 +139,20 @@
   .att-list { display: grid; }
   .att-row { display: flex; align-items: center; gap: 8px 12px; padding: 9px 2px; border-top: 1px solid var(--border); flex-wrap: wrap; }
   .att-controls { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
-  .seg { display: inline-flex; border: 1.5px solid var(--border); border-radius: 9px; overflow: hidden; }
-  .seg button { border: 0; background: transparent; padding: 5px 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--muted); }
-  .seg button + button { border-left: 1.5px solid var(--border); }
-  .seg button:hover { background: var(--hover); }
-  .seg button[aria-pressed="true"] { background: var(--pill-bg); color: var(--pill-fg); }
-  .seg button.asst[aria-pressed="true"] { background: var(--red); color: #ffffff; }
+  .rc { display: flex; align-items: center; gap: 6px; padding: 3px 4px 3px 10px; border: 1.5px solid var(--border); border-radius: 10px; }
+  .rc .rl { font-family: var(--font-head); font-size: 0.72rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); min-width: 4.6em; }
+  .rc.has { border-color: var(--navy); }
+  .rc.has .rl { color: var(--navy); }
+  .rc.asst.has { border-color: var(--red); }
+  .rc.asst.has .rl { color: var(--red); }
+  .rc.zero .n { color: var(--muted); font-weight: 600; }
+  @media (max-width: 520px) {
+    .att-controls.roles { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .att-controls.roles .rc { justify-content: space-between; padding-left: 8px; gap: 4px; }
+    .att-controls.roles .rc .rl { min-width: 0; font-size: 0.66rem; letter-spacing: 0.03em; }
+    .att-controls.roles .counter { gap: 3px; }
+    .att-controls.roles .counter button { width: 26px; height: 26px; }
+  }
   .pill { display: inline-block; border-radius: 999px; padding: 2px 9px; font-size: 0.74rem; font-weight: 700; white-space: nowrap; }
   .pill.ok { background: var(--good); color: var(--good-fg); }
   .pill.role { background: var(--pill-bg); color: var(--pill-fg); }
@@ -165,6 +173,7 @@
   .counter { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
   .counter button { width: 28px; height: 28px; border-radius: 8px; border: 1.5px solid var(--border); background: transparent; cursor: pointer; font-weight: 700; }
   .counter button:hover { background: var(--hover); }
+  .counter button:disabled { opacity: 0.35; cursor: default; background: transparent; }
   .counter .n { min-width: 16px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
   .counter .unit { color: var(--muted); font-size: 0.78rem; width: 52px; }
   .quick-add { display: flex; gap: 8px; margin-top: 14px; }
@@ -305,7 +314,7 @@
             <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
           </div>
           <div class="cal-grid" id="cal-grid"></div>
-          <p class="cal-legend">Tap a day, tick who attended, and choose whether they came as a coach or as an assistant. The number on each day is how many people came.</p>
+          <p class="cal-legend">Tap a day and tick who attended. Then set how many sessions each person did as coach and as assistant (someone can do both on the same day). The number on each day is how many people came.</p>
         </div>
 
         <div class="panel" id="day-panel">
@@ -353,7 +362,7 @@
         </div>
         <div class="empty" id="report-empty" hidden>No attendance marked this month yet.</div>
         <div id="register-wrap">
-          <h3 class="grid-title">Day by day <span class="sub" style="text-transform:none; letter-spacing:0; font-family:var(--font-body);">· filled = as coach, outlined <sup>A</sup> = as assistant<span class="no-print"> · tap a day to open it in the calendar</span></span></h3>
+          <h3 class="grid-title">Day by day <span class="sub" style="text-transform:none; letter-spacing:0; font-family:var(--font-body);">· filled = as coach, outlined <sup>A</sup> = as assistant, 1+1<sup>A</sup> = both<span class="no-print"> · tap a day to open it in the calendar</span></span></h3>
           <div class="scroll"><table class="register" id="register"></table></div>
         </div>
       </div>
@@ -415,7 +424,7 @@
 
   let pin = null;
   let coaches = [];            // [{id, name, archived}]
-  const months = new Map();    // "YYYY-MM" -> Map("coachId|YYYY-MM-DD" -> {n, role})
+  const months = new Map();    // "YYYY-MM" -> Map("coachId|YYYY-MM-DD" -> {coach, assistant} session counts)
   const approvals = new Map(); // "YYYY-MM" -> Map(coachId -> approval row)
   let selDay = todayIso();
   let month = selDay.slice(0, 7);
@@ -477,7 +486,12 @@
       withPin("approvals_for", { in_month: dayIso(ym, 1) })
     ]);
     const m = new Map();
-    (rows || []).forEach(r => m.set(r.coach_id + "|" + r.day, { n: r.sessions, role: r.role || "coach" }));
+    (rows || []).forEach(r => {
+      const key = r.coach_id + "|" + r.day;
+      const e = m.get(key) || { coach: 0, assistant: 0 };
+      e[r.role === "assistant" ? "assistant" : "coach"] += r.sessions;
+      m.set(key, e);
+    });
     months.set(ym, m);
     approvals.set(ym, new Map((appr || []).map(a => [a.coach_id, a])));
   }
@@ -485,8 +499,8 @@
     const m = months.get(iso.slice(0, 7));
     return (m && m.get(coachId + "|" + iso)) || null;
   }
-  function sessionsOn(coachId, iso) { const e = entryOn(coachId, iso); return e ? e.n : 0; }
-  function roleOn(coachId, iso) { const e = entryOn(coachId, iso); return e ? e.role : null; }
+  function sessionsOn(coachId, iso) { const e = entryOn(coachId, iso); return e ? e.coach + e.assistant : 0; }
+  function roleCount(coachId, iso, role) { const e = entryOn(coachId, iso); return e ? e[role] : 0; }
   function approvalFor(coachId, iso) {
     const m = approvals.get(iso.slice(0, 7));
     return (m && m.get(coachId)) || null;
@@ -496,7 +510,7 @@
     let best = null, role = "coach";
     months.forEach(m => m.forEach((e, key) => {
       const [id, day] = key.split("|");
-      if (id === coachId && (!best || day > best)) { best = day; role = e.role; }
+      if (id === coachId && (!best || day > best)) { best = day; role = e.coach ? "coach" : "assistant"; }
     }));
     return role;
   }
@@ -515,26 +529,38 @@
     } catch (e) { if (e.badPin) handleError(e); }
   }
 
-  async function setSessions(coachId, iso, n, quiet, role) {
+  // Shared by the two writes below: apply the change on screen, save it, and undo it on screen if saving fails.
+  async function writeDay(coachId, iso, next, quiet, call) {
     if (approvalFor(coachId, iso)) { lockedToast(coachId, iso); return; }
     const ym = iso.slice(0, 7);
     if (!months.has(ym)) months.set(ym, new Map());
     const key = coachId + "|" + iso;
     const before = months.get(ym).get(key) || null;
-    n = Math.max(0, Math.min(20, n));
-    const newRole = role || (before && before.role) || lastRole(coachId);
-    if (n === (before ? before.n : 0) && (!n || newRole === before.role)) return;
-    if (n) months.get(ym).set(key, { n, role: newRole }); else months.get(ym).delete(key);
+    if (next && next.coach + next.assistant) months.get(ym).set(key, next); else months.get(ym).delete(key);
     if (!quiet) render();
     busy++;
     try {
-      await withPin("set_sessions", { coach: coachId, on_day: iso, n, in_role: n ? newRole : null });
+      await call();
     } catch (e) {
       if (before) months.get(ym).set(key, before); else months.get(ym).delete(key);
       if (e.locked) { try { await loadMonth(ym); } catch (_) {} lockedToast(coachId, iso); render(); return; }
       render();
       handleError(e);
     } finally { busy--; }
+  }
+  // Set how many sessions a person did in one role on one day (0 removes that role).
+  function setRole(coachId, iso, role, n, quiet) {
+    n = Math.max(0, Math.min(20, n));
+    const before = entryOn(coachId, iso) || { coach: 0, assistant: 0 };
+    if (before[role] === n) return;
+    return writeDay(coachId, iso, { ...before, [role]: n }, quiet,
+      () => withPin("set_role_sessions", { coach: coachId, on_day: iso, in_role: role, n }));
+  }
+  // Untick a person for a day (both roles).
+  function clearPerson(coachId, iso, quiet) {
+    if (!sessionsOn(coachId, iso)) return;
+    return writeDay(coachId, iso, null, quiet,
+      () => withPin("set_sessions", { coach: coachId, on_day: iso, n: 0 }));
   }
 
   async function approve(coachId) {
@@ -627,28 +653,26 @@
     }
     $("att-list").innerHTML = list.map(c => {
       const n = sessionsOn(c.id, selDay);
-      const role = roleOn(c.id, selDay);
       const locked = !!approvalFor(c.id, selDay);
-      const roleName = role === "assistant" ? "Assistant" : "Coach";
+      const roleBox = (role, label) => {
+        const k = roleCount(c.id, selDay, role);
+        return `<span class="rc${role === "assistant" ? " asst" : ""}${k ? " has" : " zero"}">
+          <span class="rl">${label}</span>
+          <span class="counter">
+            <button type="button" data-step="${c.id}" data-role="${role}" data-d="-1" ${k ? "" : "disabled"} aria-label="One ${label.toLowerCase()} session fewer for ${esc(c.name)}">−</button>
+            <span class="n">${k}</span>
+            <button type="button" data-step="${c.id}" data-role="${role}" data-d="1" aria-label="One more ${label.toLowerCase()} session for ${esc(c.name)}">+</button>
+          </span>
+        </span>`;
+      };
+      const pills = () => ["coach", "assistant"].map(role => {
+        const k = roleCount(c.id, selDay, role);
+        return k ? `<span class="pill role${role === "assistant" ? " asst" : ""}">${k} as ${role}</span>` : "";
+      }).join("");
       const controls = !n ? (locked ? `<div class="att-controls"><span class="pill ok">Approved</span></div>` : "")
         : locked
-        ? `<div class="att-controls">
-            <span class="pill role${role === "assistant" ? " asst" : ""}">${roleName}</span>
-            <span class="unit">${n} session${n === 1 ? "" : "s"}</span>
-            <span class="pill ok">Approved</span>
-          </div>`
-        : `<div class="att-controls">
-            <div class="seg" role="group" aria-label="${esc(c.name)} came as">
-              <button type="button" data-role="coach" data-who="${c.id}" aria-pressed="${role === "coach"}">Coach</button>
-              <button type="button" class="asst" data-role="assistant" data-who="${c.id}" aria-pressed="${role === "assistant"}">Assistant</button>
-            </div>
-            <span class="counter">
-              <button type="button" data-step="${c.id}" data-d="-1" aria-label="One session fewer for ${esc(c.name)}">−</button>
-              <span class="n">${n}</span>
-              <button type="button" data-step="${c.id}" data-d="1" aria-label="One more session for ${esc(c.name)}">+</button>
-              <span class="unit">session${n === 1 ? "" : "s"}</span>
-            </span>
-          </div>`;
+        ? `<div class="att-controls">${pills()}<span class="pill ok">Approved</span></div>`
+        : `<div class="att-controls roles">${roleBox("coach", "Coach")}${roleBox("assistant", "Assistant")}</div>`;
       return `<div class="att-row${n ? "" : " off"}${locked ? " locked" : ""}">
         <button class="tick" type="button" ${locked ? "disabled" : `data-toggle="${c.id}"`} aria-pressed="${!!n}" aria-label="${esc(c.name)} attended${locked ? " (approved, locked)" : ""}">${n ? "✓" : ""}</button>
         <span class="att-name" ${locked ? "" : `data-toggle="${c.id}"`}>${esc(c.name)}</span>
@@ -666,8 +690,8 @@
         const e = entryOn(c.id, dayIso(month, d));
         per.push(e);
         if (e) {
-          days++; sessions += e.n;
-          if (e.role === "assistant") asAssistant += e.n; else asCoach += e.n;
+          days++; sessions += e.coach + e.assistant;
+          asCoach += e.coach; asAssistant += e.assistant;
         }
       }
       return { c, per, days, sessions, asCoach, asAssistant, approval: approvalFor(c.id, dayIso(month, 1)) };
@@ -716,8 +740,11 @@
     }
     $("register").innerHTML = `<thead><tr><th>Coach</th>${heads.join("")}<th>Total</th></tr></thead><tbody>${
       rows.map(r => `<tr><td>${esc(r.c.name)}</td>${r.per.map((e, i) => {
-        const asst = e && e.role === "assistant";
-        return `<td class="${e ? "on" : ""}${asst ? " asst" : ""}${wk[i] ? " wkend" : ""}"${e ? ` title="${asst ? "Assistant" : "Coach"}"` : ""}>${e ? e.n + (asst ? "<sup>A</sup>" : "") : ""}</td>`;
+        if (!e) return `<td class="${wk[i] ? "wkend" : ""}"></td>`;
+        const onlyAsst = !e.coach;
+        const text = [e.coach ? e.coach : "", e.assistant ? `${e.assistant}<sup>A</sup>` : ""].filter(Boolean).join("+");
+        const title = [e.coach ? `${e.coach} as coach` : "", e.assistant ? `${e.assistant} as assistant` : ""].filter(Boolean).join(", ");
+        return `<td class="on${onlyAsst ? " asst" : ""}${wk[i] ? " wkend" : ""}" title="${title}">${text}</td>`;
       }).join("")}<td class="tot">${r.sessions}</td></tr>`).join("")
     }</tbody>`;
   }
@@ -776,13 +803,12 @@
   }
 
   document.addEventListener("click", async e => {
-    const t = e.target.closest("[data-day],[data-toggle],[data-step],[data-role],[data-approve],[data-reopen],[data-goto],[data-goto-tab],[data-month-step],[data-archive],[data-restore]");
+    const t = e.target.closest("[data-day],[data-toggle],[data-step],[data-approve],[data-reopen],[data-goto],[data-goto-tab],[data-month-step],[data-archive],[data-restore]");
     if (!t) return;
     const ds = t.dataset;
     if (ds.day) selectDay(ds.day);
-    else if (ds.toggle) setSessions(ds.toggle, selDay, sessionsOn(ds.toggle, selDay) ? 0 : 1);
-    else if (ds.step) setSessions(ds.step, selDay, sessionsOn(ds.step, selDay) + Number(ds.d));
-    else if (ds.role) setSessions(ds.who, selDay, sessionsOn(ds.who, selDay), false, ds.role);
+    else if (ds.toggle) sessionsOn(ds.toggle, selDay) ? clearPerson(ds.toggle, selDay) : setRole(ds.toggle, selDay, lastRole(ds.toggle), 1);
+    else if (ds.step) setRole(ds.step, selDay, ds.role, roleCount(ds.step, selDay, ds.role) + Number(ds.d));
     else if (ds.approve) approve(ds.approve);
     else if (ds.reopen) reopen(ds.reopen);
     else if (ds.monthStep) goToMonth(addMonths(month, Number(ds.monthStep)));
@@ -794,7 +820,7 @@
   $("all-btn").addEventListener("click", async () => {
     const day = selDay;
     const todo = coaches.filter(c => !c.archived && !sessionsOn(c.id, day) && !approvalFor(c.id, day));
-    await Promise.all(todo.map(c => setSessions(c.id, day, 1, true)));
+    await Promise.all(todo.map(c => setRole(c.id, day, lastRole(c.id), 1, true)));
     render();
   });
 
@@ -807,7 +833,7 @@
     }
     resetClear();
     const day = selDay;
-    await Promise.all(presentOn(day).filter(c => !approvalFor(c.id, day)).map(c => setSessions(c.id, day, 0, true)));
+    await Promise.all(presentOn(day).filter(c => !approvalFor(c.id, day)).map(c => clearPerson(c.id, day, true)));
     render();
   });
 
@@ -819,7 +845,7 @@
     let c = coaches.find(x => x.name.toLowerCase() === name.toLowerCase());
     try { if (!c || c.archived) c = await addCoach(name); } catch (err) { handleError(err); return; }
     if (sessionsOn(c.id, selDay)) { toast(`${c.name} is already ticked for this day.`); render(); return; }
-    await setSessions(c.id, selDay, 1);
+    await setRole(c.id, selDay, lastRole(c.id), 1);
   });
 
   $("bulk-form").addEventListener("submit", async e => {
@@ -880,7 +906,7 @@
     const out = [["Name", "Days attended", "Sessions as coach", "Sessions as assistant", "Total sessions", "Approval", ...dates]];
     rows.forEach(r => out.push([r.c.name, r.days, r.asCoach, r.asAssistant, r.sessions,
       r.approval ? "Approved " + new Date(r.approval.approved_at).toLocaleDateString() : "Not approved",
-      ...r.per.map(e => e ? `${e.n} ${e.role === "assistant" ? "A" : "C"}` : "")]));
+      ...r.per.map(e => e ? [e.coach ? `${e.coach} C` : "", e.assistant ? `${e.assistant} A` : ""].filter(Boolean).join(" + ") : "")]));
     out.push(["Total", "", asCoach, asAssistant, total]);
     out.push([]);
     out.push(["Day cells: C = as coach, A = as assistant, number = sessions that day"]);
