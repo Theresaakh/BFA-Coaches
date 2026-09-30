@@ -205,6 +205,14 @@
   table.register td.on.asst { background: transparent; box-shadow: inset 0 0 0 1.5px var(--red); color: var(--red); }
   table.register td sup { font-size: 0.6rem; margin-left: 1px; }
   .status-cell { white-space: nowrap; }
+  #report-table.pivot th, #report-table.pivot td { padding: 8px 7px; white-space: nowrap; }
+  #report-table.pivot thead tr:first-child th { text-align: center; border-bottom: 1px solid var(--border); color: var(--navy); }
+  #report-table.pivot thead tr:first-child th:first-child { text-align: left; }
+  #report-table.pivot .bstart { border-left: 1.5px solid var(--border); }
+  #report-table.pivot .tcol { background: var(--surface-alt); font-weight: 700; }
+  #report-table.pivot td:first-child, #report-table.pivot th:first-child { position: sticky; left: 0; background: var(--surface); z-index: 1; }
+  #report-table.pivot .ok-mark { color: var(--good); font-weight: 700; margin-left: 3px; }
+  .asst-num { color: var(--red); }
   .status-cell .sub { margin: 0 0 0 6px; font-size: 0.78rem; }
   .print-only { display: none; }
   table.register td.tot { font-weight: 700; }
@@ -387,11 +395,12 @@
         <h2 class="print-title" id="print-title"></h2>
         <div class="kpis" id="kpis"></div>
         <div class="scroll">
-          <table>
-            <thead><tr><th>Name</th><th class="branch-col">Branch</th><th class="num">Days</th><th class="num">As coach</th><th class="num">As assistant</th><th class="num">Total sessions</th><th>Approval</th></tr></thead>
+          <table id="report-table">
+            <thead id="report-head"></thead>
             <tbody id="report-body"></tbody>
           </table>
         </div>
+        <p class="sub" id="pivot-legend" hidden>Coach and assistant sessions are counted separately in every branch and in the total. ✓ = approved in that branch. To approve or reopen, choose the branch at the top.</p>
         <div class="empty" id="report-empty" hidden>No attendance marked this month yet.</div>
         <div id="register-wrap">
           <h3 class="grid-title">Day by day <span class="sub" style="text-transform:none; letter-spacing:0; font-family:var(--font-body);">· filled = as coach, outlined <sup>A</sup> = as assistant, 1+1<sup>A</sup> = both<span class="no-print"> · tap a day to open it in the calendar</span></span></h3>
@@ -841,49 +850,79 @@
     const rows = [...groups.values()].map(g => {
       let days = 0, asCoach = 0, asAssistant = 0;
       g.per.forEach(e => { if (e) { days++; asCoach += e.coach; asAssistant += e.assistant; } });
-      return { ...g, name: coachName(g.coach), days, asCoach, asAssistant, sessions: asCoach + asAssistant,
+      return { ...g, name: coachName(g.coach), days, asCoach, asAssistant,
                approval: approvalFor(g.coach, dayIso(month, 1), g.branch) };
-    }).sort((a, b) => (scopeBranch() ? 0 : branchOrder(a.branch) - branchOrder(b.branch)) || b.sessions - a.sessions || byName(a, b));
+    }).sort((a, b) => (scopeBranch() ? 0 : branchOrder(a.branch) - branchOrder(b.branch)) || b.asCoach - a.asCoach || b.asAssistant - a.asAssistant || byName(a, b));
     const sum = k => rows.reduce((s, r) => s + r[k], 0);
-    return { nDays, rows, total: sum("sessions"), asCoach: sum("asCoach"), asAssistant: sum("asAssistant") };
+    return { nDays, rows, asCoach: sum("asCoach"), asAssistant: sum("asAssistant") };
+  }
+  // All branches: one line per coach, with coach and assistant sessions for each branch and in total.
+  function pivotData(rows) {
+    const cols = [...new Set(rows.map(r => r.branch))].sort((a, b) => branchOrder(a) - branchOrder(b));
+    const people = new Map();
+    rows.forEach(r => {
+      if (!people.has(r.coach)) people.set(r.coach, { coach: r.coach, name: r.name, by: {}, asCoach: 0, asAssistant: 0 });
+      const p = people.get(r.coach);
+      p.by[r.branch || ""] = r;
+      p.asCoach += r.asCoach; p.asAssistant += r.asAssistant;
+    });
+    const list = [...people.values()].sort((a, b) => byName(a, b));
+    const colTotals = cols.map(b => ({
+      asCoach: rows.filter(r => r.branch === b).reduce((s, r) => s + r.asCoach, 0),
+      asAssistant: rows.filter(r => r.branch === b).reduce((s, r) => s + r.asAssistant, 0)
+    }));
+    return { cols, list, colTotals };
   }
   const fmtDay = ts => new Date(ts).toLocaleDateString(undefined, { day: "numeric", month: "short" });
 
   function renderReport() {
     $("report-month-title").textContent = monthLabel(month);
     const all = !scopeBranch();
-    document.querySelectorAll(".branch-col").forEach(el => { el.hidden = !all; });
-    const { nDays, rows, total, asCoach, asAssistant } = reportData();
+    const { nDays, rows, asCoach, asAssistant } = reportData();
     const approvedCount = rows.filter(r => r.approval).length;
     $("print-title").textContent = `BFA coach attendance · ${all ? "All branches" : branchName(scopeBranch())} · ${monthLabel(month)}`;
     $("kpis").innerHTML = `
-      <div class="kpi hot"><div class="v">${total}</div><div class="l">Total sessions</div></div>
-      <div class="kpi"><div class="v">${asCoach}</div><div class="l">As coach</div></div>
-      <div class="kpi"><div class="v">${asAssistant}</div><div class="l">As assistant</div></div>
-      <div class="kpi"><div class="v">${approvedCount}<span style="font-size:1rem; color:var(--muted);"> / ${rows.length}</span></div><div class="l">Approved</div></div>`;
+      <div class="kpi"><div class="v">${asCoach}</div><div class="l">Coach sessions</div></div>
+      <div class="kpi hot"><div class="v">${asAssistant}</div><div class="l">Assistant sessions</div></div>
+      <div class="kpi"><div class="v">${new Set(rows.map(r => r.coach)).size}</div><div class="l">People</div></div>
+      <div class="kpi"><div class="v">${approvedCount}<span style="font-size:1rem; color:var(--muted);"> / ${rows.length}</span></div><div class="l">${all ? "Approved (per branch)" : "Approved"}</div></div>`;
     $("approve-all-btn").hidden = !rows.some(r => !r.approval && r.branch);
-
     $("report-empty").hidden = rows.length > 0;
     $("register-wrap").hidden = rows.length === 0;
-    $("report-body").innerHTML = rows.map(r => {
-      const key = aKey(r.coach, r.branch);
-      const armed = reopenArmed && reopenArmed.key === key;
-      const status = !r.branch
-        ? `<span class="sub">Give this coach a branch first</span>`
-        : r.approval
-        ? `<span class="pill ok">Approved</span><span class="sub">${fmtDay(r.approval.approved_at)}</span>
-           <button class="btn btn-ghost btn-sm no-print${armed ? " warn" : ""}" type="button" data-reopen="${r.coach}" data-branch="${r.branch}" style="margin-left:6px;">${armed ? "Tap again to reopen" : "Reopen"}</button>`
-        : `<button class="btn btn-primary btn-sm no-print" type="button" data-approve="${r.coach}" data-branch="${r.branch}">Approve</button><span class="print-only">Not approved</span>`;
-      return `<tr>
-        <td>${esc(r.name)}</td>
-        <td class="branch-col"${all ? "" : " hidden"}>${esc(branchName(r.branch))}</td>
-        <td class="num">${r.days}</td>
-        <td class="num">${r.asCoach || "–"}</td>
-        <td class="num">${r.asAssistant || "–"}</td>
-        <td class="num"><strong>${r.sessions}</strong></td>
-        <td class="status-cell">${status}</td>
-      </tr>`;
-    }).join("") + (rows.length ? `<tr class="total"><td>Total</td><td class="branch-col"${all ? "" : " hidden"}></td><td></td><td class="num">${asCoach}</td><td class="num">${asAssistant}</td><td class="num">${total}</td><td></td></tr>` : "");
+    $("report-table").classList.toggle("pivot", all);
+    $("pivot-legend").hidden = !(all && rows.length);
+    const num = (n, asst) => n ? `<span${asst ? ' class="asst-num"' : ""}>${n}</span>` : "–";
+
+    if (all) {
+      // Branch by branch, then the total; coach and assistant sessions are never added together.
+      const { cols, list, colTotals } = pivotData(rows);
+      $("report-head").innerHTML = rows.length ? `<tr><th rowspan="2">Name</th>${cols.map(b => `<th colspan="2" class="bstart">${esc(branchName(b))}</th>`).join("")}<th colspan="2" class="bstart tcol">Total</th></tr>
+        <tr>${cols.map(() => `<th class="num bstart">Coach</th><th class="num">Asst.</th>`).join("")}<th class="num bstart tcol">Coach</th><th class="num tcol">Asst.</th></tr>` : "";
+      $("report-body").innerHTML = list.map(p => `<tr><td>${esc(p.name)}</td>${cols.map(b => {
+          const r = p.by[b || ""];
+          if (!r) return `<td class="num bstart">–</td><td class="num">–</td>`;
+          const mark = r.approval ? `<span class="ok-mark" title="Approved in ${esc(branchName(b))}">✓</span>` : "";
+          return `<td class="num bstart">${num(r.asCoach)}</td><td class="num">${num(r.asAssistant, true)}${mark}</td>`;
+        }).join("")}<td class="num bstart tcol">${num(p.asCoach)}</td><td class="num tcol">${num(p.asAssistant, true)}</td></tr>`).join("")
+        + (rows.length ? `<tr class="total"><td>Total</td>${colTotals.map(t => `<td class="num bstart">${t.asCoach}</td><td class="num">${t.asAssistant}</td>`).join("")}<td class="num bstart tcol">${asCoach}</td><td class="num tcol">${asAssistant}</td></tr>` : "");
+    } else {
+      $("report-head").innerHTML = `<tr><th>Name</th><th class="num">Days</th><th class="num">Coach sessions</th><th class="num">Assistant sessions</th><th>Approval</th></tr>`;
+      $("report-body").innerHTML = rows.map(r => {
+        const key = aKey(r.coach, r.branch);
+        const armed = reopenArmed && reopenArmed.key === key;
+        const status = r.approval
+          ? `<span class="pill ok">Approved</span><span class="sub">${fmtDay(r.approval.approved_at)}</span>
+             <button class="btn btn-ghost btn-sm no-print${armed ? " warn" : ""}" type="button" data-reopen="${r.coach}" data-branch="${r.branch}" style="margin-left:6px;">${armed ? "Tap again to reopen" : "Reopen"}</button>`
+          : `<button class="btn btn-primary btn-sm no-print" type="button" data-approve="${r.coach}" data-branch="${r.branch}">Approve</button><span class="print-only">Not approved</span>`;
+        return `<tr>
+          <td>${esc(r.name)}</td>
+          <td class="num">${r.days}</td>
+          <td class="num">${num(r.asCoach)}</td>
+          <td class="num">${num(r.asAssistant, true)}</td>
+          <td class="status-cell">${status}</td>
+        </tr>`;
+      }).join("") + (rows.length ? `<tr class="total"><td>Total</td><td></td><td class="num">${asCoach}</td><td class="num">${asAssistant}</td><td></td></tr>` : "");
+    }
 
     if (!rows.length) { $("register").innerHTML = ""; return; }
     const heads = [], wk = [];
@@ -892,13 +931,13 @@
       wk.push(dt.getDay() === 0 || dt.getDay() === 6);
       heads.push(`<th class="day${wk[d - 1] ? " wkend" : ""}" data-goto="${toIso(dt)}" title="Open ${dt.toLocaleDateString()}">${d}<small>${dt.toLocaleDateString(undefined, { weekday: "narrow" })}</small></th>`);
     }
-    $("register").innerHTML = `<thead><tr><th>Coach</th>${heads.join("")}<th>Total</th></tr></thead><tbody>${
+    $("register").innerHTML = `<thead><tr><th>Coach</th>${heads.join("")}<th>Coach</th><th>Asst.</th></tr></thead><tbody>${
       rows.map(r => `<tr><td>${esc(r.name)}${all ? ` <span class="branch-tag">· ${esc(branchName(r.branch))}</span>` : ""}</td>${r.per.map((e, i) => {
         if (!e) return `<td class="${wk[i] ? "wkend" : ""}"></td>`;
         const text = [e.coach ? e.coach : "", e.assistant ? `${e.assistant}<sup>A</sup>` : ""].filter(Boolean).join("+");
         const title = [e.coach ? `${e.coach} as coach` : "", e.assistant ? `${e.assistant} as assistant` : ""].filter(Boolean).join(", ");
         return `<td class="on${e.coach ? "" : " asst"}${wk[i] ? " wkend" : ""}" title="${title}">${text}</td>`;
-      }).join("")}<td class="tot">${r.sessions}</td></tr>`).join("")
+      }).join("")}<td class="tot">${r.asCoach || "–"}</td><td class="tot asst-num">${r.asAssistant || "–"}</td></tr>`).join("")
     }</tbody>`;
   }
 
@@ -1173,14 +1212,24 @@
   });
 
   $("csv-btn").addEventListener("click", () => {
-    const { nDays, rows, total, asCoach, asAssistant } = reportData();
+    const { nDays, rows, asCoach, asAssistant } = reportData();
     if (!rows.length) { toast("Nothing to export for this month."); return; }
     const dates = Array.from({ length: nDays }, (_, i) => dayIso(month, i + 1));
-    const out = [["Name", "Branch", "Days attended", "Sessions as coach", "Sessions as assistant", "Total sessions", "Approval", ...dates]];
-    rows.forEach(r => out.push([r.name, branchName(r.branch), r.days, r.asCoach, r.asAssistant, r.sessions,
-      r.approval ? "Approved " + new Date(r.approval.approved_at).toLocaleDateString() : "Not approved",
-      ...r.per.map(e => e ? [e.coach ? `${e.coach} C` : "", e.assistant ? `${e.assistant} A` : ""].filter(Boolean).join(" + ") : "")]));
-    out.push(["Total", "", "", asCoach, asAssistant, total]);
+    const dayCells = r => r.per.map(e => e ? [e.coach ? `${e.coach} C` : "", e.assistant ? `${e.assistant} A` : ""].filter(Boolean).join(" + ") : "");
+    const status = r => r.approval ? "Approved " + new Date(r.approval.approved_at).toLocaleDateString() : "Not approved";
+    const out = [];
+    if (!scopeBranch()) {
+      // Summary: coach and assistant sessions per branch, then the totals (kept separate).
+      const { cols, list, colTotals } = pivotData(rows);
+      out.push(["Name", ...cols.flatMap(b => [`${branchName(b)} - coach`, `${branchName(b)} - assistant`]), "Total - coach", "Total - assistant"]);
+      list.forEach(p => out.push([p.name, ...cols.flatMap(b => { const r = p.by[b || ""]; return r ? [r.asCoach, r.asAssistant] : [0, 0]; }), p.asCoach, p.asAssistant]));
+      out.push(["Total", ...colTotals.flatMap(t => [t.asCoach, t.asAssistant]), asCoach, asAssistant]);
+      out.push([]);
+      out.push(["Day by day"]);
+    }
+    out.push(["Name", "Branch", "Days attended", "Coach sessions", "Assistant sessions", "Approval", ...dates]);
+    rows.forEach(r => out.push([r.name, branchName(r.branch), r.days, r.asCoach, r.asAssistant, status(r), ...dayCells(r)]));
+    out.push(["Total", "", "", asCoach, asAssistant]);
     out.push([]);
     out.push(["Day cells: C = as coach, A = as assistant, number = sessions that day"]);
     const csv = "﻿" + out.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
