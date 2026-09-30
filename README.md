@@ -6,9 +6,9 @@ A small web app for Beirut Football Academy to record which coaches attended eac
 
 ## What it does
 
-- **Daily log**: pick a day, type a coach's name (or tap a regular), and set how many sessions they ran that day.
+- **Coaches**: add all your coaches once. Type or paste the names, one per line. You can fix a misspelled name or remove a coach later; removed coaches keep their past attendance in reports.
+- **Calendar**: a month view where each day shows how many coaches came. Tap a day to see the whole coach list and tick who attended. There's also *All present* and *Clear day*. If a coach ran more than one session that day, use − / +.
 - **Monthly report**: days attended and total sessions per coach, plus a day-by-day register. Export to CSV (opens in Excel) or print.
-- **Coaches**: fix a misspelled name, or remove a coach from the list. Removed coaches keep their past sessions in reports.
 - **Team PIN**: the first person to open the app creates a 4–8 digit PIN. Everyone else enters it once per device. It can be changed on the Coaches tab.
 
 Data syncs between phones and computers. Each open page refreshes every 30 seconds and whenever you come back to it.

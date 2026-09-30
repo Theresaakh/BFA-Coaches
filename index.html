@@ -9,22 +9,24 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Public+Sans:wght@400;600;700&display=swap">
 <style>
-  /* Layout: navy club band on top, one working column below; the register grid scrolls on its own. */
+  /* Layout: navy club band on top; calendar and the chosen day side by side on wide screens, stacked on phones. */
   :root {
     --navy: #1b2452;
-    --navy-deep: #0d1330;
     --red: #c8202e;
     --ink: #161c3f;
     --muted: #5b6178;
     --bg: #eef0f8;
     --surface: #ffffff;
     --surface-alt: #f5f6fb;
-    --hover: #eceefb;
+    --weekend: #eceef7;
+    --hover: #e6e9fa;
     --border: #dfe2ee;
     --on-cell-bg: #dfe4f7;
     --on-cell-fg: #1b2452;
+    --pill-bg: #1b2452;
+    --pill-fg: #ffffff;
     --good: #1f8a4c;
-    --band-fg: #ffffff;
+    --good-fg: #ffffff;
     --font-head: 'Oswald', 'Arial Narrow', sans-serif;
     --font-body: 'Public Sans', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     color-scheme: light;
@@ -32,32 +34,35 @@
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --navy: #9fb0f5; --ink: #e6e8f5; --muted: #a1a7c2; --bg: #0f1326; --surface: #181d36;
-      --surface-alt: #1f2544; --hover: #262d52; --border: #2c3358; --on-cell-bg: #2d3a78;
-      --on-cell-fg: #e6e8f5; --red: #ef4a57; --good: #3fbf77; color-scheme: dark;
+      --surface-alt: #1f2544; --weekend: #1b2140; --hover: #283058; --border: #2c3358;
+      --on-cell-bg: #2d3a78; --on-cell-fg: #e6e8f5; --pill-bg: #9fb0f5; --pill-fg: #0f1326;
+      --red: #ef4a57; --good: #3fbf77; --good-fg: #0f1326; color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
     --navy: #9fb0f5; --ink: #e6e8f5; --muted: #a1a7c2; --bg: #0f1326; --surface: #181d36;
-    --surface-alt: #1f2544; --hover: #262d52; --border: #2c3358; --on-cell-bg: #2d3a78;
-    --on-cell-fg: #e6e8f5; --red: #ef4a57; --good: #3fbf77; color-scheme: dark;
+    --surface-alt: #1f2544; --weekend: #1b2140; --hover: #283058; --border: #2c3358;
+    --on-cell-bg: #2d3a78; --on-cell-fg: #e6e8f5; --pill-bg: #9fb0f5; --pill-fg: #0f1326;
+    --red: #ef4a57; --good: #3fbf77; --good-fg: #0f1326; color-scheme: dark;
   }
 
   * { box-sizing: border-box; }
   html, body { margin: 0; }
   body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
   h1, h2, h3 { font-family: var(--font-head); text-transform: uppercase; letter-spacing: 0.03em; margin: 0; text-wrap: balance; }
-  button, input, select { font: inherit; color: inherit; }
+  button, input, select, textarea { font: inherit; color: inherit; }
   [hidden] { display: none !important; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
 
   /* ---------- Club band ---------- */
   .band {
     background: linear-gradient(120deg, #0d1330 0%, #1b2452 60%, #7d1019 130%);
-    color: var(--band-fg);
+    color: #ffffff;
     padding: calc(18px + env(safe-area-inset-top, 0px)) 16px 0;
     border-bottom: 3px solid #c8202e;
   }
-  .band-inner { max-width: 980px; margin: 0 auto; }
+  .band-inner { max-width: 1080px; margin: 0 auto; }
   .brand { display: flex; align-items: center; gap: 12px; }
   .brand img { width: 46px; height: 46px; object-fit: contain; }
   .brand h1 { font-size: 1.35rem; line-height: 1.1; }
@@ -73,9 +78,8 @@
   .tabs button:hover { color: #fff; background: rgba(255,255,255,0.08); }
   .tabs button[aria-selected="true"] { color: #fff; background: rgba(255,255,255,0.14); box-shadow: inset 0 -3px 0 #ffffff; }
   @media (max-width: 480px) { .tabs button { padding: 10px 9px; font-size: 0.8rem; letter-spacing: 0.03em; } .brand h1 { font-size: 1.15rem; } }
-  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
 
-  main { max-width: 980px; margin: 0 auto; padding-block: 20px 40px; padding-inline: 16px; display: grid; gap: 16px; }
+  main { max-width: 1080px; margin: 0 auto; padding-block: 20px 40px; padding-inline: 16px; display: grid; gap: 16px; }
   main > section { min-width: 0; }
   .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; min-width: 0; }
   .panel h2 { font-size: 1.05rem; color: var(--navy); }
@@ -83,9 +87,10 @@
   .sub { color: var(--muted); font-size: 0.86rem; margin: 4px 0 0; }
 
   label.cap { display: block; font-family: var(--font-head); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
-  input[type="text"], input[type="password"], input[type="date"], input[type="month"] {
+  input[type="text"], input[type="password"], input[type="month"], textarea {
     width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--surface-alt); min-width: 0;
   }
+  textarea { resize: vertical; min-height: 130px; line-height: 1.5; }
   .btn {
     border: 0; border-radius: 10px; padding: 10px 16px; cursor: pointer; white-space: nowrap;
     font-family: var(--font-head); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; font-size: 0.85rem;
@@ -95,33 +100,60 @@
   .btn-ghost { background: transparent; border: 1.5px solid var(--border); color: var(--ink); }
   .btn-ghost:hover { background: var(--hover); }
   .btn-sm { padding: 6px 11px; font-size: 0.75rem; }
-  .btn:disabled { opacity: 0.5; cursor: default; }
+  .btn.warn { border-color: var(--red); color: var(--red); }
 
-  /* ---------- Date / month stepper ---------- */
-  .stepper-nav { display: flex; align-items: center; gap: 6px; }
-  .stepper-nav input { width: auto; }
+  .month-nav { display: flex; align-items: center; gap: 8px; }
+  .month-nav h2 { min-width: 9.5em; text-align: center; font-size: 1.15rem; }
   .icon-btn { width: 38px; height: 38px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--surface); cursor: pointer; font-size: 1.05rem; flex: 0 0 auto; }
   .icon-btn:hover { background: var(--hover); }
 
-  .add-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
-  .add-row > div { flex: 1 1 220px; min-width: 0; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-  .chip { border: 1.5px dashed var(--border); background: transparent; border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 0.85rem; }
-  .chip:hover { border-style: solid; border-color: var(--navy); background: var(--hover); }
-
-  /* ---------- Day register ---------- */
-  .day-list { display: grid; }
-  .day-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 2px; border-top: 1px solid var(--border); }
-  .day-row:first-child { border-top: 0; }
-  .day-row .name { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
-  .counter { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
-  .counter button { width: 34px; height: 34px; border-radius: 9px; border: 1.5px solid var(--navy); background: transparent; color: var(--navy); font-weight: 700; font-size: 1.05rem; cursor: pointer; }
-  .counter button:hover { background: var(--hover); }
-  .counter .n { min-width: 20px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .counter .unit { color: var(--muted); font-size: 0.8rem; width: 58px; }
-  .remove { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 6px; font-size: 0.95rem; }
-  .remove:hover { color: var(--red); }
   .empty { color: var(--muted); text-align: center; padding: 22px 8px; font-size: 0.92rem; }
+  .linkish { background: none; border: 0; color: var(--red); cursor: pointer; text-decoration: underline; padding: 0; font: inherit; }
+
+  /* ---------- Calendar ---------- */
+  .cal-layout { display: grid; gap: 16px; }
+  @media (min-width: 880px) { .cal-layout { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; } }
+  .cal-week, .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+  .cal-week { margin-bottom: 6px; }
+  .cal-week span { font-family: var(--font-head); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); text-align: center; }
+  .cal-day {
+    min-height: 64px; border: 1.5px solid transparent; border-radius: 10px; background: var(--surface-alt);
+    padding: 6px 7px; cursor: pointer; text-align: left; display: flex; flex-direction: column; justify-content: space-between; gap: 4px;
+  }
+  .cal-day:hover { background: var(--hover); }
+  .cal-day.wkend { background: var(--weekend); }
+  .cal-day.blank { visibility: hidden; }
+  .cal-day .d { font-family: var(--font-head); font-weight: 600; font-size: 1rem; line-height: 1; }
+  .cal-day.today .d { color: var(--red); }
+  .cal-day.today .d::after { content: " •"; }
+  .cal-day.sel { border-color: var(--navy); background: var(--hover); }
+  .cal-day .c { align-self: flex-start; min-width: 22px; text-align: center; background: var(--pill-bg); color: var(--pill-fg); border-radius: 999px; padding: 1px 7px; font-size: 0.72rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  @media (max-width: 520px) {
+    .cal-week, .cal-grid { gap: 4px; }
+    .cal-day { min-height: 50px; padding: 5px; }
+  }
+  .cal-legend { color: var(--muted); font-size: 0.82rem; margin-top: 12px; }
+
+  /* ---------- Chosen day ---------- */
+  .day-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .att-list { display: grid; }
+  .att-row { display: flex; align-items: center; gap: 12px; padding: 9px 2px; border-top: 1px solid var(--border); }
+  .att-row:first-child { border-top: 0; }
+  .tick {
+    width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border); background: transparent;
+    cursor: pointer; flex: 0 0 auto; font-weight: 700; font-size: 0.95rem; line-height: 1;
+  }
+  .tick:hover { border-color: var(--good); }
+  .tick[aria-pressed="true"] { background: var(--good); border-color: var(--good); color: var(--good-fg); }
+  .att-name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; cursor: pointer; }
+  .att-row.off .att-name { color: var(--muted); }
+  .counter { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+  .counter button { width: 28px; height: 28px; border-radius: 8px; border: 1.5px solid var(--border); background: transparent; cursor: pointer; font-weight: 700; }
+  .counter button:hover { background: var(--hover); }
+  .counter .n { min-width: 16px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .counter .unit { color: var(--muted); font-size: 0.78rem; width: 52px; }
+  .quick-add { display: flex; gap: 8px; margin-top: 14px; }
+  .quick-add input { flex: 1 1 auto; }
 
   /* ---------- Report ---------- */
   .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
@@ -137,7 +169,6 @@
   tr.total td { font-weight: 700; border-bottom: 0; }
   .bar { height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; min-width: 60px; }
   .bar i { display: block; height: 100%; background: #c8202e; }
-
   .grid-title { font-size: 0.9rem; margin: 22px 0 8px; color: var(--navy); }
   table.register { width: auto; min-width: 100%; font-size: 0.78rem; }
   table.register th, table.register td { text-align: center; padding: 5px 3px; min-width: 25px; border-bottom: 1px solid var(--border); }
@@ -150,11 +181,14 @@
   table.register td.tot { font-weight: 700; }
 
   /* ---------- Coaches ---------- */
-  .coach-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .coaches-layout { display: grid; gap: 16px; }
+  @media (min-width: 880px) { .coaches-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
+  .coach-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); }
   .coach-row:first-child { border-top: 0; }
-  .coach-row input { flex: 1 1 200px; }
-  .coach-row .meta { color: var(--muted); font-size: 0.8rem; width: 96px; text-align: right; }
+  .coach-row input { flex: 1 1 auto; }
   details summary { cursor: pointer; font-family: var(--font-head); text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.85rem; color: var(--muted); margin-top: 16px; }
+  .row-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+  .row-form > div { flex: 1 1 200px; min-width: 0; }
 
   /* ---------- Gates ---------- */
   .gate { min-height: 100vh; display: grid; place-items: center; padding: 16px; background: linear-gradient(140deg, #0d1330, #1b2452 60%, #5a0f18); }
@@ -194,7 +228,7 @@
 
     <form id="gate-setup" hidden>
       <div style="display:grid; gap:12px;">
-        <p>First time here. Choose a team PIN (4–8 digits). Everyone who logs coaches will use it.</p>
+        <p>First time here. Choose a team PIN (4–8 digits). Everyone who takes attendance will use it.</p>
         <input type="password" id="setup-pin" class="pin" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="••••••" aria-label="New PIN">
         <input type="password" id="setup-pin2" class="pin" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="repeat" aria-label="Repeat PIN">
         <div class="err" id="setup-err"></div>
@@ -226,7 +260,7 @@
         <button class="lock" id="lock-btn" type="button">Lock</button>
       </div>
       <nav class="tabs" role="tablist">
-        <button role="tab" data-tab="day" aria-selected="true">Daily log</button>
+        <button role="tab" data-tab="calendar" aria-selected="true">Calendar</button>
         <button role="tab" data-tab="report" aria-selected="false">Monthly report</button>
         <button role="tab" data-tab="coaches" aria-selected="false">Coaches</button>
       </nav>
@@ -234,36 +268,42 @@
   </header>
 
   <main>
-    <!-- DAILY LOG -->
-    <section data-view="day">
-      <div class="panel" style="margin-bottom:16px;">
-        <div class="panel-head">
-          <div>
-            <h2 id="day-title">Today</h2>
-            <p class="sub" id="day-sub"></p>
+    <!-- CALENDAR -->
+    <section data-view="calendar">
+      <div class="cal-layout">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="month-nav">
+              <button class="icon-btn" data-month-step="-1" type="button" aria-label="Previous month">‹</button>
+              <h2 id="cal-title"></h2>
+              <button class="icon-btn" data-month-step="1" type="button" aria-label="Next month">›</button>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="today-btn" type="button">Today</button>
           </div>
-          <div class="stepper-nav">
-            <button class="icon-btn" id="day-prev" type="button" aria-label="Previous day">‹</button>
-            <input type="date" id="day-date" aria-label="Date">
-            <button class="icon-btn" id="day-next" type="button" aria-label="Next day">›</button>
+          <div class="cal-week" aria-hidden="true">
+            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
           </div>
+          <div class="cal-grid" id="cal-grid"></div>
+          <p class="cal-legend">Tap a day, then tick the coaches who attended. The number on each day is how many coaches came.</p>
         </div>
-        <form class="add-row" id="add-form" autocomplete="off">
-          <div>
-            <label class="cap" for="add-name">Coach name</label>
-            <input type="text" id="add-name" list="coach-names" placeholder="Type a name and press Enter">
-            <datalist id="coach-names"></datalist>
-          </div>
-          <button class="btn btn-primary" type="submit">+ Add</button>
-        </form>
-        <div class="chips" id="chips"></div>
-      </div>
 
-      <div class="panel">
-        <div class="panel-head">
-          <h2>Coaches present <span id="day-count" style="color:var(--red);"></span></h2>
+        <div class="panel" id="day-panel">
+          <div class="panel-head">
+            <div>
+              <h2 id="day-title"></h2>
+              <p class="sub" id="day-sub"></p>
+            </div>
+            <div class="day-actions">
+              <button class="btn btn-ghost btn-sm" id="all-btn" type="button">All present</button>
+              <button class="btn btn-ghost btn-sm" id="clear-btn" type="button">Clear day</button>
+            </div>
+          </div>
+          <div class="att-list" id="att-list"></div>
+          <form class="quick-add" id="quick-form" autocomplete="off">
+            <input type="text" id="quick-name" placeholder="Add another coach to this day" aria-label="Coach name">
+            <button class="btn btn-primary" type="submit">Add</button>
+          </form>
         </div>
-        <div class="day-list" id="day-list"></div>
       </div>
     </section>
 
@@ -271,10 +311,10 @@
     <section data-view="report" hidden>
       <div class="panel">
         <div class="panel-head no-print">
-          <div class="stepper-nav">
-            <button class="icon-btn" id="month-prev" type="button" aria-label="Previous month">‹</button>
-            <input type="month" id="month" aria-label="Month">
-            <button class="icon-btn" id="month-next" type="button" aria-label="Next month">›</button>
+          <div class="month-nav">
+            <button class="icon-btn" data-month-step="-1" type="button" aria-label="Previous month">‹</button>
+            <h2 id="report-month-title"></h2>
+            <button class="icon-btn" data-month-step="1" type="button" aria-label="Next month">›</button>
           </div>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <button class="btn btn-ghost btn-sm" id="csv-btn" type="button">Export CSV</button>
@@ -289,9 +329,9 @@
             <tbody id="report-body"></tbody>
           </table>
         </div>
-        <div class="empty" id="report-empty" hidden>No sessions logged this month yet.</div>
+        <div class="empty" id="report-empty" hidden>No attendance marked this month yet.</div>
         <div id="register-wrap">
-          <h3 class="grid-title">Day by day <span class="sub no-print" style="text-transform:none; letter-spacing:0; font-family:var(--font-body);">· tap a day to open it</span></h3>
+          <h3 class="grid-title">Day by day <span class="sub no-print" style="text-transform:none; letter-spacing:0; font-family:var(--font-body);">· tap a day to open it in the calendar</span></h3>
           <div class="scroll"><table class="register" id="register"></table></div>
         </div>
       </div>
@@ -299,28 +339,40 @@
 
     <!-- COACHES -->
     <section data-view="coaches" hidden>
-      <div class="panel" style="margin-bottom:16px;">
-        <div class="panel-head">
-          <div>
-            <h2>Coaches</h2>
-            <p class="sub">Fix a name by editing it. Removed coaches keep their past sessions in reports.</p>
-          </div>
+      <div class="coaches-layout">
+        <div class="panel">
+          <h2>Add coaches</h2>
+          <p class="sub">Type or paste the names, one per line. Names already on the list are skipped.</p>
+          <form id="bulk-form" style="display:grid; gap:10px; margin-top:12px;">
+            <textarea id="bulk-names" placeholder="Rami Khoury&#10;Nadim Aoun&#10;Joe Saade" aria-label="Coach names, one per line"></textarea>
+            <div><button class="btn btn-primary" type="submit">Add to list</button></div>
+          </form>
         </div>
-        <div id="coach-list"></div>
-        <details id="archived-wrap">
-          <summary>Removed coaches</summary>
-          <div id="archived-list" style="margin-top:8px;"></div>
-        </details>
-      </div>
-      <div class="panel">
-        <h2>Change team PIN</h2>
-        <form class="add-row" id="pin-form" style="margin-top:12px;" autocomplete="off">
-          <div>
-            <label class="cap" for="new-pin">New PIN (4–8 digits)</label>
-            <input type="password" id="new-pin" inputmode="numeric" maxlength="8" autocomplete="new-password">
+
+        <div class="panel">
+          <div class="panel-head" style="margin-bottom:6px;">
+            <div>
+              <h2>Coach list <span id="coach-count" style="color:var(--red);"></span></h2>
+              <p class="sub">Edit a name to fix it. Removed coaches keep their past attendance in reports.</p>
+            </div>
           </div>
-          <button class="btn btn-primary" type="submit">Save PIN</button>
-        </form>
+          <div id="coach-list"></div>
+          <details id="archived-wrap">
+            <summary>Removed coaches</summary>
+            <div id="archived-list" style="margin-top:8px;"></div>
+          </details>
+        </div>
+
+        <div class="panel">
+          <h2>Change team PIN</h2>
+          <form class="row-form" id="pin-form" style="margin-top:12px;" autocomplete="off">
+            <div>
+              <label class="cap" for="new-pin">New PIN (4–8 digits)</label>
+              <input type="password" id="new-pin" inputmode="numeric" maxlength="8" autocomplete="new-password">
+            </div>
+            <button class="btn btn-primary" type="submit">Save PIN</button>
+          </form>
+        </div>
       </div>
     </section>
   </main>
@@ -342,8 +394,8 @@
   let pin = null;
   let coaches = [];            // [{id, name, archived}]
   const months = new Map();    // "YYYY-MM" -> Map("coachId|YYYY-MM-DD" -> sessions)
-  let dayDate = todayIso();
-  let reportMonth = dayDate.slice(0, 7);
+  let selDay = todayIso();
+  let month = selDay.slice(0, 7);
 
   // ---------- helpers ----------
   function todayIso() {
@@ -352,12 +404,13 @@
   }
   function parseIso(iso) { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d); }
   function toIso(dt) { return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`; }
-  function addDays(iso, n) { const d = parseIso(iso); d.setDate(d.getDate() + n); return toIso(d); }
-  function addMonths(ym, n) { const [y, m] = ym.split("-").map(Number); const d = new Date(y, m - 1 + n, 1); return toIso(d).slice(0, 7); }
+  function addMonths(ym, n) { const [y, m] = ym.split("-").map(Number); return toIso(new Date(y, m - 1 + n, 1)).slice(0, 7); }
   function daysIn(ym) { const [y, m] = ym.split("-").map(Number); return new Date(y, m, 0).getDate(); }
+  function dayIso(ym, d) { return `${ym}-${String(d).padStart(2, "0")}`; }
   function monthLabel(ym) { return parseIso(ym + "-01").toLocaleDateString(undefined, { month: "long", year: "numeric" }); }
   function coachById(id) { return coaches.find(c => c.id === id); }
   function byName(a, b) { return a.name.localeCompare(b.name, undefined, { sensitivity: "base" }); }
+  const cleanName = s => s.trim().replace(/\s+/g, " ");
 
   function toast(msg) {
     const t = $("toast");
@@ -392,11 +445,9 @@
   }
 
   // ---------- data ----------
-  async function loadCoaches() {
-    coaches = (await withPin("list_coaches")) || [];
-  }
+  async function loadCoaches() { coaches = (await withPin("list_coaches")) || []; }
   async function loadMonth(ym) {
-    const rows = await withPin("sessions_between", { from_day: ym + "-01", to_day: `${ym}-${String(daysIn(ym)).padStart(2, "0")}` });
+    const rows = await withPin("sessions_between", { from_day: dayIso(ym, 1), to_day: dayIso(ym, daysIn(ym)) });
     const m = new Map();
     (rows || []).forEach(r => m.set(r.coach_id + "|" + r.day, r.sessions));
     months.set(ym, m);
@@ -405,111 +456,122 @@
     const m = months.get(iso.slice(0, 7));
     return (m && m.get(coachId + "|" + iso)) || 0;
   }
+  function presentOn(iso) { return coaches.filter(c => sessionsOn(c.id, iso)); }
+
+  let busy = 0; // writes in flight; background refresh waits so it can't undo a tick on screen
   async function refresh() {
-    if (!pin) return;
+    if (!pin || busy) return;
     try {
-      const needed = new Set([dayDate.slice(0, 7), reportMonth]);
-      await Promise.all([loadCoaches(), ...[...needed].map(loadMonth)]);
-      render();
+      await Promise.all([loadCoaches(), loadMonth(month)]);
+      if (!busy) render();
     } catch (e) { if (e.badPin) handleError(e); }
   }
-  async function ensureMonth(ym) {
-    if (!months.has(ym)) {
-      try { await loadMonth(ym); } catch (e) { handleError(e); }
-    }
-  }
 
-  async function setSessions(coachId, iso, n) {
+  async function setSessions(coachId, iso, n, quiet) {
     const ym = iso.slice(0, 7);
     if (!months.has(ym)) months.set(ym, new Map());
     const key = coachId + "|" + iso;
     const before = months.get(ym).get(key) || 0;
     n = Math.max(0, Math.min(20, n));
+    if (n === before) return;
     if (n) months.get(ym).set(key, n); else months.get(ym).delete(key);
-    render();
+    if (!quiet) render();
+    busy++;
     try {
       await withPin("set_sessions", { coach: coachId, on_day: iso, n });
     } catch (e) {
       if (before) months.get(ym).set(key, before); else months.get(ym).delete(key);
       render();
       handleError(e);
-    }
+    } finally { busy--; }
   }
 
-  async function addByName(raw) {
-    const name = raw.trim().replace(/\s+/g, " ");
-    if (!name) return;
-    let c = coaches.find(x => x.name.toLowerCase() === name.toLowerCase());
-    try {
-      if (!c || c.archived) {
-        c = await withPin("add_coach", { coach_name: name });
-        coaches = coaches.filter(x => x.id !== c.id).concat(c);
-      }
-    } catch (e) { handleError(e); return; }
-    if (!sessionsOn(c.id, dayDate)) await setSessions(c.id, dayDate, 1);
-    else toast(`${c.name} is already on this day.`);
+  async function addCoach(name) {
+    const c = await withPin("add_coach", { coach_name: name });
+    coaches = coaches.filter(x => x.id !== c.id).concat(c);
+    return c;
   }
 
   // ---------- rendering ----------
   function render() {
+    renderCalendar();
     renderDay();
     renderReport();
     renderCoaches();
   }
 
+  function renderCalendar() {
+    $("cal-title").textContent = monthLabel(month);
+    const first = parseIso(month + "-01");
+    const offset = (first.getDay() + 6) % 7; // weeks start on Monday
+    const today = todayIso();
+    let html = "";
+    for (let i = 0; i < offset; i++) html += `<div class="cal-day blank" aria-hidden="true"></div>`;
+    for (let d = 1; d <= daysIn(month); d++) {
+      const iso = dayIso(month, d);
+      const dow = parseIso(iso).getDay();
+      const n = presentOn(iso).length;
+      const cls = ["cal-day", dow === 0 || dow === 6 ? "wkend" : "", iso === today ? "today" : "", iso === selDay ? "sel" : ""].join(" ");
+      const label = parseIso(iso).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }) + (n ? `, ${n} coach${n === 1 ? "" : "es"}` : "");
+      html += `<button type="button" class="${cls}" data-day="${iso}" aria-label="${esc(label)}" aria-pressed="${iso === selDay}">
+        <span class="d">${d}</span>${n ? `<span class="c">${n}</span>` : ""}</button>`;
+    }
+    $("cal-grid").innerHTML = html;
+  }
+
   function renderDay() {
-    $("day-date").value = dayDate;
-    const isToday = dayDate === todayIso();
-    const d = parseIso(dayDate);
-    $("day-title").textContent = isToday ? "Today" : d.toLocaleDateString(undefined, { weekday: "long" });
+    const d = parseIso(selDay);
+    $("day-title").textContent = selDay === todayIso() ? "Today" : d.toLocaleDateString(undefined, { weekday: "long" });
     $("day-sub").textContent = d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
-    const active = coaches.filter(c => !c.archived).sort(byName);
-    $("coach-names").innerHTML = active.map(c => `<option value="${esc(c.name)}"></option>`).join("");
+    // Everyone on the list, plus anyone removed from the list who was marked on this day.
+    const list = coaches.filter(c => !c.archived || sessionsOn(c.id, selDay)).sort(byName);
+    const present = list.filter(c => sessionsOn(c.id, selDay)).length;
+    $("all-btn").hidden = !list.length || present === list.filter(c => !c.archived).length;
+    $("clear-btn").hidden = !present;
+    resetClear();
 
-    const present = coaches.filter(c => sessionsOn(c.id, dayDate)).sort(byName);
-    const absent = active.filter(c => !sessionsOn(c.id, dayDate));
-    $("chips").innerHTML = absent.map(c => `<button class="chip" type="button" data-add="${c.id}">+ ${esc(c.name)}</button>`).join("");
-    $("day-count").textContent = present.length ? `· ${present.length}` : "";
-
-    $("day-list").innerHTML = present.length ? present.map(c => {
-      const n = sessionsOn(c.id, dayDate);
-      return `<div class="day-row">
-        <div class="name">${esc(c.name)}</div>
-        <div class="counter">
+    if (!list.length) {
+      $("att-list").innerHTML = `<div class="empty">Your coach list is empty.<br>
+        <button class="linkish" type="button" data-goto-tab="coaches">Add all your coaches</button> once, or type a name below.</div>`;
+      return;
+    }
+    $("att-list").innerHTML = list.map(c => {
+      const n = sessionsOn(c.id, selDay);
+      return `<div class="att-row${n ? "" : " off"}">
+        <button class="tick" type="button" data-toggle="${c.id}" aria-pressed="${!!n}" aria-label="${esc(c.name)} attended">${n ? "✓" : ""}</button>
+        <span class="att-name" data-toggle="${c.id}">${esc(c.name)}</span>
+        ${n ? `<span class="counter">
           <button type="button" data-step="${c.id}" data-d="-1" aria-label="One session fewer for ${esc(c.name)}">−</button>
           <span class="n">${n}</span>
           <button type="button" data-step="${c.id}" data-d="1" aria-label="One more session for ${esc(c.name)}">+</button>
           <span class="unit">session${n === 1 ? "" : "s"}</span>
-          <button class="remove" type="button" data-remove="${c.id}" aria-label="Remove ${esc(c.name)} from this day">✕</button>
-        </div>
+        </span>` : ""}
       </div>`;
-    }).join("") : `<div class="empty">Nobody logged for this day yet.<br>Type a coach's name above, or tap a name.</div>`;
+    }).join("");
   }
 
   function reportData() {
-    const ym = reportMonth;
-    const nDays = daysIn(ym);
+    const nDays = daysIn(month);
     const rows = coaches.map(c => {
       const per = [];
       let days = 0, sessions = 0;
       for (let d = 1; d <= nDays; d++) {
-        const n = sessionsOn(c.id, `${ym}-${String(d).padStart(2, "0")}`);
+        const n = sessionsOn(c.id, dayIso(month, d));
         per.push(n);
         if (n) { days++; sessions += n; }
       }
       return { c, per, days, sessions };
     }).filter(r => r.sessions).sort((a, b) => b.sessions - a.sessions || byName(a.c, b.c));
-    return { ym, nDays, rows, total: rows.reduce((s, r) => s + r.sessions, 0) };
+    return { nDays, rows, total: rows.reduce((s, r) => s + r.sessions, 0) };
   }
 
   function renderReport() {
-    $("month").value = reportMonth;
-    const { ym, nDays, rows, total } = reportData();
+    $("report-month-title").textContent = monthLabel(month);
+    const { nDays, rows, total } = reportData();
     const activeDays = Array.from({ length: nDays }, (_, i) => rows.some(r => r.per[i])).filter(Boolean).length;
-    $("print-title").textContent = `BFA coach attendance · ${monthLabel(ym)}`;
+    $("print-title").textContent = `BFA coach attendance · ${monthLabel(month)}`;
     $("kpis").innerHTML = `
-      <div class="kpi"><div class="v" style="font-size:1.25rem; padding-top:6px;">${esc(monthLabel(ym))}</div><div class="l">Month</div></div>
       <div class="kpi hot"><div class="v">${total}</div><div class="l">Sessions attended</div></div>
       <div class="kpi"><div class="v">${rows.length}</div><div class="l">Coaches</div></div>
       <div class="kpi"><div class="v">${activeDays}</div><div class="l">Days with sessions</div></div>`;
@@ -525,12 +587,10 @@
       </tr>`).join("") + (rows.length ? `<tr class="total"><td>Total</td><td></td><td class="num">${total}</td><td></td></tr>` : "");
 
     if (!rows.length) { $("register").innerHTML = ""; return; }
-    const heads = [];
-    const wk = [];
+    const heads = [], wk = [];
     for (let d = 1; d <= nDays; d++) {
-      const dt = parseIso(`${ym}-${String(d).padStart(2, "0")}`);
-      const dow = dt.getDay();
-      wk.push(dow === 0 || dow === 6);
+      const dt = parseIso(dayIso(month, d));
+      wk.push(dt.getDay() === 0 || dt.getDay() === 6);
       heads.push(`<th class="day${wk[d - 1] ? " wkend" : ""}" data-goto="${toIso(dt)}" title="Open ${dt.toLocaleDateString()}">${d}<small>${dt.toLocaleDateString(undefined, { weekday: "narrow" })}</small></th>`);
     }
     $("register").innerHTML = `<thead><tr><th>Coach</th>${heads.join("")}<th>Total</th></tr></thead><tbody>${
@@ -550,60 +610,112 @@
       </div>`;
     const active = coaches.filter(c => !c.archived).sort(byName);
     const archived = coaches.filter(c => c.archived).sort(byName);
-    $("coach-list").innerHTML = active.length ? active.map(row).join("") : `<div class="empty">No coaches yet. Add names from the daily log.</div>`;
+    $("coach-count").textContent = active.length ? `· ${active.length}` : "";
+    $("coach-list").innerHTML = active.length ? active.map(row).join("") : `<div class="empty">No coaches yet. Add their names on the left.</div>`;
     $("archived-wrap").hidden = !archived.length;
     $("archived-list").innerHTML = archived.map(row).join("");
   }
 
-  // ---------- events ----------
-  document.querySelector(".tabs").addEventListener("click", e => {
-    const b = e.target.closest("[data-tab]");
-    if (b) showTab(b.dataset.tab);
-  });
+  // ---------- navigation ----------
   function showTab(tab) {
     document.querySelectorAll(".tabs [data-tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
     document.querySelectorAll("main > section").forEach(s => { s.hidden = s.dataset.view !== tab; });
   }
-
-  async function goToDay(iso) {
-    if (!iso) return;
-    dayDate = iso;
-    renderDay();
-    await ensureMonth(iso.slice(0, 7));
-    renderDay();
-  }
-  $("day-date").addEventListener("change", e => goToDay(e.target.value));
-  $("day-prev").addEventListener("click", () => goToDay(addDays(dayDate, -1)));
-  $("day-next").addEventListener("click", () => goToDay(addDays(dayDate, 1)));
-
-  async function goToMonth(ym) {
-    if (!ym) return;
-    reportMonth = ym;
-    renderReport();
-    await ensureMonth(ym);
-    renderReport();
-  }
-  $("month").addEventListener("change", e => goToMonth(e.target.value));
-  $("month-prev").addEventListener("click", () => goToMonth(addMonths(reportMonth, -1)));
-  $("month-next").addEventListener("click", () => goToMonth(addMonths(reportMonth, 1)));
-
-  $("add-form").addEventListener("submit", async e => {
-    e.preventDefault();
-    const input = $("add-name");
-    const v = input.value;
-    input.value = "";
-    await addByName(v);
-    input.focus();
+  document.querySelector(".tabs").addEventListener("click", e => {
+    const b = e.target.closest("[data-tab]");
+    if (b) showTab(b.dataset.tab);
   });
 
-  document.addEventListener("click", e => {
-    const t = e.target.closest("[data-add],[data-step],[data-remove],[data-goto],[data-archive],[data-restore]");
+  async function goToMonth(ym, day) {
+    month = ym;
+    selDay = day || (ym === todayIso().slice(0, 7) ? todayIso() : dayIso(ym, 1));
+    render();
+    if (!months.has(ym)) {
+      try { await loadMonth(ym); } catch (e) { handleError(e); }
+    }
+    render();
+  }
+  function selectDay(iso) {
+    if (iso.slice(0, 7) !== month) { goToMonth(iso.slice(0, 7), iso); return; }
+    selDay = iso;
+    renderCalendar();
+    renderDay();
+    if (window.matchMedia("(max-width: 879px)").matches) $("day-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  $("today-btn").addEventListener("click", () => selectDay(todayIso()));
+
+  // ---------- clicks ----------
+  let clearArmed = null;
+  function resetClear() {
+    clearTimeout(clearArmed); clearArmed = null;
+    $("clear-btn").textContent = "Clear day";
+    $("clear-btn").classList.remove("warn");
+  }
+
+  document.addEventListener("click", async e => {
+    const t = e.target.closest("[data-day],[data-toggle],[data-step],[data-goto],[data-goto-tab],[data-month-step],[data-archive],[data-restore]");
     if (!t) return;
-    if (t.dataset.add) setSessions(t.dataset.add, dayDate, 1);
-    else if (t.dataset.step) setSessions(t.dataset.step, dayDate, sessionsOn(t.dataset.step, dayDate) + Number(t.dataset.d));
-    else if (t.dataset.remove) setSessions(t.dataset.remove, dayDate, 0);
-    else if (t.dataset.goto) { goToDay(t.dataset.goto); showTab("day"); window.scrollTo(0, 0); }
-    else if (t.dataset.archive || t.dataset.restore) setArchived(t.dataset.archive || t.dataset.restore, !!t.dataset.archive);
+    const ds = t.dataset;
+    if (ds.day) selectDay(ds.day);
+    else if (ds.toggle) setSessions(ds.toggle, selDay, sessionsOn(ds.toggle, selDay) ? 0 : 1);
+    else if (ds.step) setSessions(ds.step, selDay, sessionsOn(ds.step, selDay) + Number(ds.d));
+    else if (ds.monthStep) goToMonth(addMonths(month, Number(ds.monthStep)));
+    else if (ds.goto) { showTab("calendar"); selectDay(ds.goto); }
+    else if (ds.gotoTab) { showTab(ds.gotoTab); $("bulk-names").focus(); }
+    else if (ds.archive || ds.restore) setArchived(ds.archive || ds.restore, !!ds.archive);
+  });
+
+  $("all-btn").addEventListener("click", async () => {
+    const day = selDay;
+    const todo = coaches.filter(c => !c.archived && !sessionsOn(c.id, day));
+    await Promise.all(todo.map(c => setSessions(c.id, day, 1, true)));
+    render();
+  });
+
+  $("clear-btn").addEventListener("click", async () => {
+    if (!clearArmed) {
+      $("clear-btn").textContent = "Tap again to clear";
+      $("clear-btn").classList.add("warn");
+      clearArmed = setTimeout(resetClear, 4000);
+      return;
+    }
+    resetClear();
+    const day = selDay;
+    await Promise.all(presentOn(day).map(c => setSessions(c.id, day, 0, true)));
+    render();
+  });
+
+  $("quick-form").addEventListener("submit", async e => {
+    e.preventDefault();
+    const name = cleanName($("quick-name").value);
+    if (!name) return;
+    $("quick-name").value = "";
+    let c = coaches.find(x => x.name.toLowerCase() === name.toLowerCase());
+    try { if (!c || c.archived) c = await addCoach(name); } catch (err) { handleError(err); return; }
+    if (sessionsOn(c.id, selDay)) { toast(`${c.name} is already ticked for this day.`); render(); return; }
+    await setSessions(c.id, selDay, 1);
+  });
+
+  $("bulk-form").addEventListener("submit", async e => {
+    e.preventDefault();
+    const seen = new Set();
+    const names = $("bulk-names").value.split(/[\n,;]+/).map(cleanName).filter(n => {
+      const k = n.toLowerCase();
+      if (!n || seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+    const fresh = names.filter(n => !coaches.some(c => !c.archived && c.name.toLowerCase() === n.toLowerCase()));
+    if (!names.length) { toast("Type at least one name."); return; }
+    if (!fresh.length) { toast("Everyone you typed is already on the list."); return; }
+    let added = 0;
+    for (const n of fresh) {
+      try { await addCoach(n); added++; } catch (err) { handleError(err); break; }
+    }
+    $("bulk-names").value = "";
+    render();
+    const skipped = names.length - fresh.length;
+    toast(`Added ${added} coach${added === 1 ? "" : "es"}` + (skipped ? `. ${skipped} already on the list.` : "."));
   });
 
   async function setArchived(id, archived) {
@@ -613,7 +725,7 @@
     render();
     try {
       await withPin("set_coach_archived", { coach: id, is_archived: archived });
-      toast(archived ? `${c.name} removed from the list. Past sessions are kept.` : `${c.name} restored.`);
+      toast(archived ? `${c.name} removed from the list. Past attendance is kept.` : `${c.name} is back on the list.`);
     } catch (e) { c.archived = !archived; render(); handleError(e); }
   }
 
@@ -621,7 +733,7 @@
     const id = e.target.dataset && e.target.dataset.rename;
     if (!id) return;
     const c = coachById(id);
-    const name = e.target.value.trim().replace(/\s+/g, " ");
+    const name = cleanName(e.target.value);
     if (!c || !name || name === c.name) { e.target.value = c ? c.name : ""; return; }
     if (coaches.some(x => x.id !== id && x.name.toLowerCase() === name.toLowerCase())) {
       toast(`There is already a coach called ${name}.`);
@@ -636,16 +748,16 @@
   });
 
   $("csv-btn").addEventListener("click", () => {
-    const { ym, nDays, rows, total } = reportData();
+    const { nDays, rows, total } = reportData();
     if (!rows.length) { toast("Nothing to export for this month."); return; }
-    const dates = Array.from({ length: nDays }, (_, i) => `${ym}-${String(i + 1).padStart(2, "0")}`);
+    const dates = Array.from({ length: nDays }, (_, i) => dayIso(month, i + 1));
     const out = [["Coach", "Days attended", "Sessions attended", ...dates]];
     rows.forEach(r => out.push([r.c.name, r.days, r.sessions, ...r.per.map(n => n || "")]));
     out.push(["Total", "", total]);
     const csv = "﻿" + out.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    a.download = `bfa-coach-attendance-${ym}.csv`;
+    a.download = `bfa-coach-attendance-${month}.csv`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
@@ -674,9 +786,11 @@
   }
   async function enter(p) {
     pin = p;
-    await refresh();
+    await Promise.all([loadCoaches(), loadMonth(month)]);
+    render();
     $("gate").hidden = true;
     $("app").hidden = false;
+    if (!coaches.length) showTab("coaches");
   }
   function lock(msg) {
     pin = null;
