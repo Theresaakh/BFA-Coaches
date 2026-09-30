@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>BFA Coach Attendance</title>
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Public+Sans:wght@400;600;700&display=swap">
+<style>
+  /* Layout: navy club band on top, one working column below; the register grid scrolls on its own. */
+  :root {
+    --navy: #1b2452;
+    --navy-deep: #0d1330;
+    --red: #c8202e;
+    --ink: #161c3f;
+    --muted: #5b6178;
+    --bg: #eef0f8;
+    --surface: #ffffff;
+    --surface-alt: #f5f6fb;
+    --hover: #eceefb;
+    --border: #dfe2ee;
+    --on-cell-bg: #dfe4f7;
+    --on-cell-fg: #1b2452;
+    --good: #1f8a4c;
+    --band-fg: #ffffff;
+    --font-head: 'Oswald', 'Arial Narrow', sans-serif;
+    --font-body: 'Public Sans', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --navy: #9fb0f5; --ink: #e6e8f5; --muted: #a1a7c2; --bg: #0f1326; --surface: #181d36;
+      --surface-alt: #1f2544; --hover: #262d52; --border: #2c3358; --on-cell-bg: #2d3a78;
+      --on-cell-fg: #e6e8f5; --red: #ef4a57; --good: #3fbf77; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --navy: #9fb0f5; --ink: #e6e8f5; --muted: #a1a7c2; --bg: #0f1326; --surface: #181d36;
+    --surface-alt: #1f2544; --hover: #262d52; --border: #2c3358; --on-cell-bg: #2d3a78;
+    --on-cell-fg: #e6e8f5; --red: #ef4a57; --good: #3fbf77; color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+  h1, h2, h3 { font-family: var(--font-head); text-transform: uppercase; letter-spacing: 0.03em; margin: 0; text-wrap: balance; }
+  button, input, select { font: inherit; color: inherit; }
+  [hidden] { display: none !important; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+  /* ---------- Club band ---------- */
+  .band {
+    background: linear-gradient(120deg, #0d1330 0%, #1b2452 60%, #7d1019 130%);
+    color: var(--band-fg);
+    padding: calc(18px + env(safe-area-inset-top, 0px)) 16px 0;
+    border-bottom: 3px solid #c8202e;
+  }
+  .band-inner { max-width: 980px; margin: 0 auto; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand img { width: 46px; height: 46px; object-fit: contain; }
+  .brand h1 { font-size: 1.35rem; line-height: 1.1; }
+  .brand p { margin: 2px 0 0; font-size: 0.82rem; opacity: 0.8; }
+  .brand .lock { margin-left: auto; background: transparent; border: 1.5px solid rgba(255,255,255,0.55); color: #fff; border-radius: 999px; padding: 5px 12px; font-family: var(--font-head); font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; }
+  .brand .lock:hover { background: rgba(255,255,255,0.12); }
+  .tabs { display: flex; gap: 4px; margin-top: 16px; overflow-x: auto; }
+  .tabs button {
+    background: transparent; border: 0; color: rgba(255,255,255,0.72); cursor: pointer;
+    font-family: var(--font-head); font-weight: 600; font-size: 0.9rem; letter-spacing: 0.05em; text-transform: uppercase;
+    padding: 10px 14px; border-radius: 10px 10px 0 0; white-space: nowrap;
+  }
+  .tabs button:hover { color: #fff; background: rgba(255,255,255,0.08); }
+  .tabs button[aria-selected="true"] { color: #fff; background: rgba(255,255,255,0.14); box-shadow: inset 0 -3px 0 #ffffff; }
+  @media (max-width: 480px) { .tabs button { padding: 10px 9px; font-size: 0.8rem; letter-spacing: 0.03em; } .brand h1 { font-size: 1.15rem; } }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+
+  main { max-width: 980px; margin: 0 auto; padding-block: 20px 40px; padding-inline: 16px; display: grid; gap: 16px; }
+  main > section { min-width: 0; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; min-width: 0; }
+  .panel h2 { font-size: 1.05rem; color: var(--navy); }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .sub { color: var(--muted); font-size: 0.86rem; margin: 4px 0 0; }
+
+  label.cap { display: block; font-family: var(--font-head); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+  input[type="text"], input[type="password"], input[type="date"], input[type="month"] {
+    width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--surface-alt); min-width: 0;
+  }
+  .btn {
+    border: 0; border-radius: 10px; padding: 10px 16px; cursor: pointer; white-space: nowrap;
+    font-family: var(--font-head); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; font-size: 0.85rem;
+  }
+  .btn-primary { background: #c8202e; color: #fff; }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-ghost { background: transparent; border: 1.5px solid var(--border); color: var(--ink); }
+  .btn-ghost:hover { background: var(--hover); }
+  .btn-sm { padding: 6px 11px; font-size: 0.75rem; }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+
+  /* ---------- Date / month stepper ---------- */
+  .stepper-nav { display: flex; align-items: center; gap: 6px; }
+  .stepper-nav input { width: auto; }
+  .icon-btn { width: 38px; height: 38px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--surface); cursor: pointer; font-size: 1.05rem; flex: 0 0 auto; }
+  .icon-btn:hover { background: var(--hover); }
+
+  .add-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+  .add-row > div { flex: 1 1 220px; min-width: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .chip { border: 1.5px dashed var(--border); background: transparent; border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 0.85rem; }
+  .chip:hover { border-style: solid; border-color: var(--navy); background: var(--hover); }
+
+  /* ---------- Day register ---------- */
+  .day-list { display: grid; }
+  .day-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 2px; border-top: 1px solid var(--border); }
+  .day-row:first-child { border-top: 0; }
+  .day-row .name { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+  .counter { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+  .counter button { width: 34px; height: 34px; border-radius: 9px; border: 1.5px solid var(--navy); background: transparent; color: var(--navy); font-weight: 700; font-size: 1.05rem; cursor: pointer; }
+  .counter button:hover { background: var(--hover); }
+  .counter .n { min-width: 20px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .counter .unit { color: var(--muted); font-size: 0.8rem; width: 58px; }
+  .remove { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 6px; font-size: 0.95rem; }
+  .remove:hover { color: var(--red); }
+  .empty { color: var(--muted); text-align: center; padding: 22px 8px; font-size: 0.92rem; }
+
+  /* ---------- Report ---------- */
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .kpi { background: var(--surface-alt); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+  .kpi .v { font-family: var(--font-head); font-weight: 700; font-size: 1.9rem; color: var(--navy); line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .kpi.hot .v { color: var(--red); }
+  .kpi .l { font-family: var(--font-head); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th { font-family: var(--font-head); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; text-align: left; padding: 8px; border-bottom: 1.5px solid var(--border); }
+  td { padding: 10px 8px; border-bottom: 1px solid var(--border); }
+  td.num, th.num { text-align: right; }
+  tr.total td { font-weight: 700; border-bottom: 0; }
+  .bar { height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; min-width: 60px; }
+  .bar i { display: block; height: 100%; background: #c8202e; }
+
+  .grid-title { font-size: 0.9rem; margin: 22px 0 8px; color: var(--navy); }
+  table.register { width: auto; min-width: 100%; font-size: 0.78rem; }
+  table.register th, table.register td { text-align: center; padding: 5px 3px; min-width: 25px; border-bottom: 1px solid var(--border); }
+  table.register th:first-child, table.register td:first-child { text-align: left; position: sticky; left: 0; background: var(--surface); min-width: 120px; padding-left: 4px; z-index: 1; }
+  table.register th.day { cursor: pointer; line-height: 1.15; }
+  table.register th.day:hover { color: var(--red); }
+  table.register th.day small { display: block; font-size: 0.62rem; opacity: 0.75; }
+  table.register th.wkend, table.register td.wkend { background: var(--surface-alt); }
+  table.register td.on { background: var(--on-cell-bg); color: var(--on-cell-fg); font-weight: 700; }
+  table.register td.tot { font-weight: 700; }
+
+  /* ---------- Coaches ---------- */
+  .coach-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .coach-row:first-child { border-top: 0; }
+  .coach-row input { flex: 1 1 200px; }
+  .coach-row .meta { color: var(--muted); font-size: 0.8rem; width: 96px; text-align: right; }
+  details summary { cursor: pointer; font-family: var(--font-head); text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.85rem; color: var(--muted); margin-top: 16px; }
+
+  /* ---------- Gates ---------- */
+  .gate { min-height: 100vh; display: grid; place-items: center; padding: 16px; background: linear-gradient(140deg, #0d1330, #1b2452 60%, #5a0f18); }
+  .gate-card { background: var(--surface); border-radius: 18px; padding: 26px 22px; width: 100%; max-width: 380px; text-align: center; display: grid; gap: 14px; }
+  .gate-card img { width: 72px; height: 72px; object-fit: contain; margin: 0 auto; }
+  .gate-card h1 { font-size: 1.3rem; color: var(--navy); }
+  .gate-card p { margin: 0; color: var(--muted); font-size: 0.88rem; }
+  .pin { text-align: center; font-size: 1.5rem; letter-spacing: 0.35em; font-family: var(--font-head); }
+  .err { color: var(--red); font-size: 0.85rem; min-height: 1.2em; }
+  .check { display: flex; gap: 8px; align-items: center; justify-content: center; font-size: 0.85rem; color: var(--muted); }
+
+  .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 0.88rem; max-width: calc(100% - 32px); z-index: 10; }
+
+  .print-title { display: none; }
+  @media print {
+    .band, .no-print, .toast { display: none !important; }
+    body { background: #fff; color: #000; }
+    main { padding: 0; }
+    .panel { border: 0; padding: 0; }
+    .print-title { display: block; font-size: 1.1rem; margin-bottom: 10px; }
+    .scroll { overflow: visible; }
+    table.register { font-size: 0.6rem; }
+    table.register th, table.register td { min-width: 0; padding: 2px 1px; }
+    table.register th:first-child, table.register td:first-child { min-width: 90px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Loading / PIN screens -->
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <img src="logo.png" alt="Beirut Football Academy crest">
+    <h1>Coach Attendance</h1>
+
+    <div id="gate-loading"><p>Connecting…</p></div>
+
+    <form id="gate-setup" hidden>
+      <div style="display:grid; gap:12px;">
+        <p>First time here. Choose a team PIN (4–8 digits). Everyone who logs coaches will use it.</p>
+        <input type="password" id="setup-pin" class="pin" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="••••••" aria-label="New PIN">
+        <input type="password" id="setup-pin2" class="pin" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="repeat" aria-label="Repeat PIN">
+        <div class="err" id="setup-err"></div>
+        <button class="btn btn-primary" type="submit">Create PIN</button>
+      </div>
+    </form>
+
+    <form id="gate-login" hidden>
+      <div style="display:grid; gap:12px;">
+        <p>Enter the team PIN.</p>
+        <input type="password" id="login-pin" class="pin" inputmode="numeric" maxlength="8" autocomplete="current-password" placeholder="••••••" aria-label="PIN">
+        <label class="check"><input type="checkbox" id="remember" checked> Remember on this device</label>
+        <div class="err" id="login-err"></div>
+        <button class="btn btn-primary" type="submit">Open</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="app" hidden>
+  <header class="band">
+    <div class="band-inner">
+      <div class="brand">
+        <img src="logo.png" alt="">
+        <div>
+          <h1>Coach Attendance</h1>
+          <p>Beirut Football Academy</p>
+        </div>
+        <button class="lock" id="lock-btn" type="button">Lock</button>
+      </div>
+      <nav class="tabs" role="tablist">
+        <button role="tab" data-tab="day" aria-selected="true">Daily log</button>
+        <button role="tab" data-tab="report" aria-selected="false">Monthly report</button>
+        <button role="tab" data-tab="coaches" aria-selected="false">Coaches</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- DAILY LOG -->
+    <section data-view="day">
+      <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-head">
+          <div>
+            <h2 id="day-title">Today</h2>
+            <p class="sub" id="day-sub"></p>
+          </div>
+          <div class="stepper-nav">
+            <button class="icon-btn" id="day-prev" type="button" aria-label="Previous day">‹</button>
+            <input type="date" id="day-date" aria-label="Date">
+            <button class="icon-btn" id="day-next" type="button" aria-label="Next day">›</button>
+          </div>
+        </div>
+        <form class="add-row" id="add-form" autocomplete="off">
+          <div>
+            <label class="cap" for="add-name">Coach name</label>
+            <input type="text" id="add-name" list="coach-names" placeholder="Type a name and press Enter">
+            <datalist id="coach-names"></datalist>
+          </div>
+          <button class="btn btn-primary" type="submit">+ Add</button>
+        </form>
+        <div class="chips" id="chips"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Coaches present <span id="day-count" style="color:var(--red);"></span></h2>
+        </div>
+        <div class="day-list" id="day-list"></div>
+      </div>
+    </section>
+
+    <!-- MONTHLY REPORT -->
+    <section data-view="report" hidden>
+      <div class="panel">
+        <div class="panel-head no-print">
+          <div class="stepper-nav">
+            <button class="icon-btn" id="month-prev" type="button" aria-label="Previous month">‹</button>
+            <input type="month" id="month" aria-label="Month">
+            <button class="icon-btn" id="month-next" type="button" aria-label="Next month">›</button>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-ghost btn-sm" id="csv-btn" type="button">Export CSV</button>
+            <button class="btn btn-ghost btn-sm" id="print-btn" type="button">Print</button>
+          </div>
+        </div>
+        <h2 class="print-title" id="print-title"></h2>
+        <div class="kpis" id="kpis"></div>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>Coach</th><th class="num">Days attended</th><th class="num">Sessions</th><th style="width:30%;"></th></tr></thead>
+            <tbody id="report-body"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="report-empty" hidden>No sessions logged this month yet.</div>
+        <div id="register-wrap">
+          <h3 class="grid-title">Day by day <span class="sub no-print" style="text-transform:none; letter-spacing:0; font-family:var(--font-body);">· tap a day to open it</span></h3>
+          <div class="scroll"><table class="register" id="register"></table></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COACHES -->
+    <section data-view="coaches" hidden>
+      <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-head">
+          <div>
+            <h2>Coaches</h2>
+            <p class="sub">Fix a name by editing it. Removed coaches keep their past sessions in reports.</p>
+          </div>
+        </div>
+        <div id="coach-list"></div>
+        <details id="archived-wrap">
+          <summary>Removed coaches</summary>
+          <div id="archived-list" style="margin-top:8px;"></div>
+        </details>
+      </div>
+      <div class="panel">
+        <h2>Change team PIN</h2>
+        <form class="add-row" id="pin-form" style="margin-top:12px;" autocomplete="off">
+          <div>
+            <label class="cap" for="new-pin">New PIN (4–8 digits)</label>
+            <input type="password" id="new-pin" inputmode="numeric" maxlength="8" autocomplete="new-password">
+          </div>
+          <button class="btn btn-primary" type="submit">Save PIN</button>
+        </form>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+  // Supabase project "bfa-coach-attendance". The publishable key is safe to ship:
+  // tables are closed to it, and every data function checks the team PIN on the server.
+  const API = "https://pwttmxipjuigowkknceh.supabase.co/rest/v1/rpc/";
+  const KEY = "sb_publishable_88oucQDEBASRCyqWpnR6zA_LXmdxmD6";
+  const PIN_KEY = "bfaCoachPin";
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  let pin = null;
+  let coaches = [];            // [{id, name, archived}]
+  const months = new Map();    // "YYYY-MM" -> Map("coachId|YYYY-MM-DD" -> sessions)
+  let dayDate = todayIso();
+  let reportMonth = dayDate.slice(0, 7);
+
+  // ---------- helpers ----------
+  function todayIso() {
+    const d = new Date();
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  }
+  function parseIso(iso) { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d); }
+  function toIso(dt) { return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`; }
+  function addDays(iso, n) { const d = parseIso(iso); d.setDate(d.getDate() + n); return toIso(d); }
+  function addMonths(ym, n) { const [y, m] = ym.split("-").map(Number); const d = new Date(y, m - 1 + n, 1); return toIso(d).slice(0, 7); }
+  function daysIn(ym) { const [y, m] = ym.split("-").map(Number); return new Date(y, m, 0).getDate(); }
+  function monthLabel(ym) { return parseIso(ym + "-01").toLocaleDateString(undefined, { month: "long", year: "numeric" }); }
+  function coachById(id) { return coaches.find(c => c.id === id); }
+  function byName(a, b) { return a.name.localeCompare(b.name, undefined, { sensitivity: "base" }); }
+
+  function toast(msg) {
+    const t = $("toast");
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => { t.hidden = true; }, 3200);
+  }
+
+  async function rpc(fn, args = {}) {
+    const res = await fetch(API + fn, {
+      method: "POST",
+      headers: { apikey: KEY, "Content-Type": "application/json" },
+      body: JSON.stringify(args)
+    });
+    const text = await res.text();
+    const body = text ? JSON.parse(text) : null;
+    if (!res.ok) {
+      const err = new Error((body && body.message) || "Request failed");
+      err.badPin = res.status === 401 || (body && body.code === "28P01");
+      throw err;
+    }
+    return body;
+  }
+  const withPin = (fn, args = {}) => rpc(fn, { p: pin, ...args });
+
+  function storedPin() { try { return localStorage.getItem(PIN_KEY); } catch (e) { return null; } }
+  function storePin(v) { try { v ? localStorage.setItem(PIN_KEY, v) : localStorage.removeItem(PIN_KEY); } catch (e) {} }
+
+  function handleError(e) {
+    if (e.badPin) { lock("The team PIN has changed. Enter the new PIN."); return; }
+    toast(navigator.onLine === false ? "You're offline. Changes will not save until you reconnect." : "Couldn't save: " + e.message);
+  }
+
+  // ---------- data ----------
+  async function loadCoaches() {
+    coaches = (await withPin("list_coaches")) || [];
+  }
+  async function loadMonth(ym) {
+    const rows = await withPin("sessions_between", { from_day: ym + "-01", to_day: `${ym}-${String(daysIn(ym)).padStart(2, "0")}` });
+    const m = new Map();
+    (rows || []).forEach(r => m.set(r.coach_id + "|" + r.day, r.sessions));
+    months.set(ym, m);
+  }
+  function sessionsOn(coachId, iso) {
+    const m = months.get(iso.slice(0, 7));
+    return (m && m.get(coachId + "|" + iso)) || 0;
+  }
+  async function refresh() {
+    if (!pin) return;
+    try {
+      const needed = new Set([dayDate.slice(0, 7), reportMonth]);
+      await Promise.all([loadCoaches(), ...[...needed].map(loadMonth)]);
+      render();
+    } catch (e) { if (e.badPin) handleError(e); }
+  }
+  async function ensureMonth(ym) {
+    if (!months.has(ym)) {
+      try { await loadMonth(ym); } catch (e) { handleError(e); }
+    }
+  }
+
+  async function setSessions(coachId, iso, n) {
+    const ym = iso.slice(0, 7);
+    if (!months.has(ym)) months.set(ym, new Map());
+    const key = coachId + "|" + iso;
+    const before = months.get(ym).get(key) || 0;
+    n = Math.max(0, Math.min(20, n));
+    if (n) months.get(ym).set(key, n); else months.get(ym).delete(key);
+    render();
+    try {
+      await withPin("set_sessions", { coach: coachId, on_day: iso, n });
+    } catch (e) {
+      if (before) months.get(ym).set(key, before); else months.get(ym).delete(key);
+      render();
+      handleError(e);
+    }
+  }
+
+  async function addByName(raw) {
+    const name = raw.trim().replace(/\s+/g, " ");
+    if (!name) return;
+    let c = coaches.find(x => x.name.toLowerCase() === name.toLowerCase());
+    try {
+      if (!c || c.archived) {
+        c = await withPin("add_coach", { coach_name: name });
+        coaches = coaches.filter(x => x.id !== c.id).concat(c);
+      }
+    } catch (e) { handleError(e); return; }
+    if (!sessionsOn(c.id, dayDate)) await setSessions(c.id, dayDate, 1);
+    else toast(`${c.name} is already on this day.`);
+  }
+
+  // ---------- rendering ----------
+  function render() {
+    renderDay();
+    renderReport();
+    renderCoaches();
+  }
+
+  function renderDay() {
+    $("day-date").value = dayDate;
+    const isToday = dayDate === todayIso();
+    const d = parseIso(dayDate);
+    $("day-title").textContent = isToday ? "Today" : d.toLocaleDateString(undefined, { weekday: "long" });
+    $("day-sub").textContent = d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+    const active = coaches.filter(c => !c.archived).sort(byName);
+    $("coach-names").innerHTML = active.map(c => `<option value="${esc(c.name)}"></option>`).join("");
+
+    const present = coaches.filter(c => sessionsOn(c.id, dayDate)).sort(byName);
+    const absent = active.filter(c => !sessionsOn(c.id, dayDate));
+    $("chips").innerHTML = absent.map(c => `<button class="chip" type="button" data-add="${c.id}">+ ${esc(c.name)}</button>`).join("");
+    $("day-count").textContent = present.length ? `· ${present.length}` : "";
+
+    $("day-list").innerHTML = present.length ? present.map(c => {
+      const n = sessionsOn(c.id, dayDate);
+      return `<div class="day-row">
+        <div class="name">${esc(c.name)}</div>
+        <div class="counter">
+          <button type="button" data-step="${c.id}" data-d="-1" aria-label="One session fewer for ${esc(c.name)}">−</button>
+          <span class="n">${n}</span>
+          <button type="button" data-step="${c.id}" data-d="1" aria-label="One more session for ${esc(c.name)}">+</button>
+          <span class="unit">session${n === 1 ? "" : "s"}</span>
+          <button class="remove" type="button" data-remove="${c.id}" aria-label="Remove ${esc(c.name)} from this day">✕</button>
+        </div>
+      </div>`;
+    }).join("") : `<div class="empty">Nobody logged for this day yet.<br>Type a coach's name above, or tap a name.</div>`;
+  }
+
+  function reportData() {
+    const ym = reportMonth;
+    const nDays = daysIn(ym);
+    const rows = coaches.map(c => {
+      const per = [];
+      let days = 0, sessions = 0;
+      for (let d = 1; d <= nDays; d++) {
+        const n = sessionsOn(c.id, `${ym}-${String(d).padStart(2, "0")}`);
+        per.push(n);
+        if (n) { days++; sessions += n; }
+      }
+      return { c, per, days, sessions };
+    }).filter(r => r.sessions).sort((a, b) => b.sessions - a.sessions || byName(a.c, b.c));
+    return { ym, nDays, rows, total: rows.reduce((s, r) => s + r.sessions, 0) };
+  }
+
+  function renderReport() {
+    $("month").value = reportMonth;
+    const { ym, nDays, rows, total } = reportData();
+    const activeDays = Array.from({ length: nDays }, (_, i) => rows.some(r => r.per[i])).filter(Boolean).length;
+    $("print-title").textContent = `BFA coach attendance · ${monthLabel(ym)}`;
+    $("kpis").innerHTML = `
+      <div class="kpi"><div class="v" style="font-size:1.25rem; padding-top:6px;">${esc(monthLabel(ym))}</div><div class="l">Month</div></div>
+      <div class="kpi hot"><div class="v">${total}</div><div class="l">Sessions attended</div></div>
+      <div class="kpi"><div class="v">${rows.length}</div><div class="l">Coaches</div></div>
+      <div class="kpi"><div class="v">${activeDays}</div><div class="l">Days with sessions</div></div>`;
+
+    $("report-empty").hidden = rows.length > 0;
+    $("register-wrap").hidden = rows.length === 0;
+    const max = Math.max(1, ...rows.map(r => r.sessions));
+    $("report-body").innerHTML = rows.map(r => `<tr>
+        <td>${esc(r.c.name)}${r.c.archived ? ' <span class="sub">(removed)</span>' : ""}</td>
+        <td class="num">${r.days}</td>
+        <td class="num"><strong>${r.sessions}</strong></td>
+        <td><div class="bar"><i style="width:${Math.round(r.sessions / max * 100)}%"></i></div></td>
+      </tr>`).join("") + (rows.length ? `<tr class="total"><td>Total</td><td></td><td class="num">${total}</td><td></td></tr>` : "");
+
+    if (!rows.length) { $("register").innerHTML = ""; return; }
+    const heads = [];
+    const wk = [];
+    for (let d = 1; d <= nDays; d++) {
+      const dt = parseIso(`${ym}-${String(d).padStart(2, "0")}`);
+      const dow = dt.getDay();
+      wk.push(dow === 0 || dow === 6);
+      heads.push(`<th class="day${wk[d - 1] ? " wkend" : ""}" data-goto="${toIso(dt)}" title="Open ${dt.toLocaleDateString()}">${d}<small>${dt.toLocaleDateString(undefined, { weekday: "narrow" })}</small></th>`);
+    }
+    $("register").innerHTML = `<thead><tr><th>Coach</th>${heads.join("")}<th>Total</th></tr></thead><tbody>${
+      rows.map(r => `<tr><td>${esc(r.c.name)}</td>${r.per.map((n, i) =>
+        `<td class="${n ? "on" : ""}${wk[i] ? " wkend" : ""}">${n || ""}</td>`).join("")}<td class="tot">${r.sessions}</td></tr>`).join("")
+    }</tbody>`;
+  }
+
+  function renderCoaches() {
+    // Don't rebuild the list under someone who is typing a new name.
+    if (document.activeElement && document.activeElement.dataset && document.activeElement.dataset.rename) return;
+    const row = c => `<div class="coach-row">
+        <input type="text" value="${esc(c.name)}" data-rename="${c.id}" aria-label="Name">
+        ${c.archived
+          ? `<button class="btn btn-ghost btn-sm" type="button" data-restore="${c.id}">Restore</button>`
+          : `<button class="btn btn-ghost btn-sm" type="button" data-archive="${c.id}">Remove</button>`}
+      </div>`;
+    const active = coaches.filter(c => !c.archived).sort(byName);
+    const archived = coaches.filter(c => c.archived).sort(byName);
+    $("coach-list").innerHTML = active.length ? active.map(row).join("") : `<div class="empty">No coaches yet. Add names from the daily log.</div>`;
+    $("archived-wrap").hidden = !archived.length;
+    $("archived-list").innerHTML = archived.map(row).join("");
+  }
+
+  // ---------- events ----------
+  document.querySelector(".tabs").addEventListener("click", e => {
+    const b = e.target.closest("[data-tab]");
+    if (b) showTab(b.dataset.tab);
+  });
+  function showTab(tab) {
+    document.querySelectorAll(".tabs [data-tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
+    document.querySelectorAll("main > section").forEach(s => { s.hidden = s.dataset.view !== tab; });
+  }
+
+  async function goToDay(iso) {
+    if (!iso) return;
+    dayDate = iso;
+    renderDay();
+    await ensureMonth(iso.slice(0, 7));
+    renderDay();
+  }
+  $("day-date").addEventListener("change", e => goToDay(e.target.value));
+  $("day-prev").addEventListener("click", () => goToDay(addDays(dayDate, -1)));
+  $("day-next").addEventListener("click", () => goToDay(addDays(dayDate, 1)));
+
+  async function goToMonth(ym) {
+    if (!ym) return;
+    reportMonth = ym;
+    renderReport();
+    await ensureMonth(ym);
+    renderReport();
+  }
+  $("month").addEventListener("change", e => goToMonth(e.target.value));
+  $("month-prev").addEventListener("click", () => goToMonth(addMonths(reportMonth, -1)));
+  $("month-next").addEventListener("click", () => goToMonth(addMonths(reportMonth, 1)));
+
+  $("add-form").addEventListener("submit", async e => {
+    e.preventDefault();
+    const input = $("add-name");
+    const v = input.value;
+    input.value = "";
+    await addByName(v);
+    input.focus();
+  });
+
+  document.addEventListener("click", e => {
+    const t = e.target.closest("[data-add],[data-step],[data-remove],[data-goto],[data-archive],[data-restore]");
+    if (!t) return;
+    if (t.dataset.add) setSessions(t.dataset.add, dayDate, 1);
+    else if (t.dataset.step) setSessions(t.dataset.step, dayDate, sessionsOn(t.dataset.step, dayDate) + Number(t.dataset.d));
+    else if (t.dataset.remove) setSessions(t.dataset.remove, dayDate, 0);
+    else if (t.dataset.goto) { goToDay(t.dataset.goto); showTab("day"); window.scrollTo(0, 0); }
+    else if (t.dataset.archive || t.dataset.restore) setArchived(t.dataset.archive || t.dataset.restore, !!t.dataset.archive);
+  });
+
+  async function setArchived(id, archived) {
+    const c = coachById(id);
+    if (!c) return;
+    c.archived = archived;
+    render();
+    try {
+      await withPin("set_coach_archived", { coach: id, is_archived: archived });
+      toast(archived ? `${c.name} removed from the list. Past sessions are kept.` : `${c.name} restored.`);
+    } catch (e) { c.archived = !archived; render(); handleError(e); }
+  }
+
+  document.addEventListener("change", async e => {
+    const id = e.target.dataset && e.target.dataset.rename;
+    if (!id) return;
+    const c = coachById(id);
+    const name = e.target.value.trim().replace(/\s+/g, " ");
+    if (!c || !name || name === c.name) { e.target.value = c ? c.name : ""; return; }
+    if (coaches.some(x => x.id !== id && x.name.toLowerCase() === name.toLowerCase())) {
+      toast(`There is already a coach called ${name}.`);
+      e.target.value = c.name;
+      return;
+    }
+    const old = c.name;
+    c.name = name;
+    render();
+    try { await withPin("rename_coach", { coach: id, new_name: name }); toast("Name saved."); }
+    catch (err) { c.name = old; render(); handleError(err); }
+  });
+
+  $("csv-btn").addEventListener("click", () => {
+    const { ym, nDays, rows, total } = reportData();
+    if (!rows.length) { toast("Nothing to export for this month."); return; }
+    const dates = Array.from({ length: nDays }, (_, i) => `${ym}-${String(i + 1).padStart(2, "0")}`);
+    const out = [["Coach", "Days attended", "Sessions attended", ...dates]];
+    rows.forEach(r => out.push([r.c.name, r.days, r.sessions, ...r.per.map(n => n || "")]));
+    out.push(["Total", "", total]);
+    const csv = "﻿" + out.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    a.download = `bfa-coach-attendance-${ym}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  $("print-btn").addEventListener("click", () => window.print());
+
+  $("pin-form").addEventListener("submit", async e => {
+    e.preventDefault();
+    const v = $("new-pin").value.trim();
+    if (!/^\d{4,8}$/.test(v)) { toast("The PIN must be 4 to 8 digits."); return; }
+    try {
+      await withPin("change_pin", { new_pin: v });
+      pin = v;
+      if (storedPin()) storePin(v);
+      $("new-pin").value = "";
+      toast("PIN changed. Share the new PIN with your team.");
+    } catch (err) { handleError(err); }
+  });
+
+  // ---------- gates ----------
+  function showGate(which) {
+    $("gate").hidden = false;
+    $("app").hidden = true;
+    ["loading", "setup", "login"].forEach(k => { $("gate-" + k).hidden = k !== which; });
+    const focus = { setup: "setup-pin", login: "login-pin" }[which];
+    if (focus) setTimeout(() => $(focus).focus(), 0);
+  }
+  async function enter(p) {
+    pin = p;
+    await refresh();
+    $("gate").hidden = true;
+    $("app").hidden = false;
+  }
+  function lock(msg) {
+    pin = null;
+    storePin(null);
+    months.clear();
+    coaches = [];
+    showGate("login");
+    $("login-err").textContent = msg || "";
+    $("login-pin").value = "";
+  }
+  $("lock-btn").addEventListener("click", () => lock());
+
+  $("gate-setup").addEventListener("submit", async e => {
+    e.preventDefault();
+    const a = $("setup-pin").value.trim(), b = $("setup-pin2").value.trim();
+    if (!/^\d{4,8}$/.test(a)) { $("setup-err").textContent = "Use 4 to 8 digits."; return; }
+    if (a !== b) { $("setup-err").textContent = "The two PINs don't match."; return; }
+    try {
+      await rpc("setup_pin", { new_pin: a });
+      storePin(a);
+      await enter(a);
+    } catch (err) { $("setup-err").textContent = err.message; }
+  });
+
+  $("gate-login").addEventListener("submit", async e => {
+    e.preventDefault();
+    const p = $("login-pin").value.trim();
+    if (!p) return;
+    try {
+      await rpc("check_pin", { p });
+      if ($("remember").checked) storePin(p);
+      $("login-err").textContent = "";
+      await enter(p);
+    } catch (err) { $("login-err").textContent = err.badPin ? "Wrong PIN. Try again." : "Couldn't connect. Check your internet and try again."; }
+  });
+
+  document.querySelectorAll(".pin, #new-pin").forEach(i => i.addEventListener("input", () => { i.value = i.value.replace(/\D/g, "").slice(0, 8); }));
+
+  async function boot() {
+    showGate("loading");
+    try {
+      if (!(await rpc("pin_is_set"))) { showGate("setup"); return; }
+      const saved = storedPin();
+      if (saved) {
+        try { await rpc("check_pin", { p: saved }); await enter(saved); return; }
+        catch (e) { if (!e.badPin) throw e; storePin(null); }
+      }
+      showGate("login");
+    } catch (e) {
+      $("gate-loading").innerHTML = `<p>Couldn't connect. Check your internet connection.</p><button class="btn btn-primary" type="button" id="retry" style="margin-top:12px;">Try again</button>`;
+      $("retry").addEventListener("click", boot);
+    }
+  }
+
+  // Keep every phone in sync: refresh when the page comes back into view and every 30 seconds while open.
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+  setInterval(() => { if (!document.hidden) refresh(); }, 30000);
+
+  boot();
+})();
+</script>
+</body>
+</html>
