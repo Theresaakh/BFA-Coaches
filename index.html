@@ -137,7 +137,22 @@
   /* ---------- Chosen day ---------- */
   .day-actions { display: flex; gap: 8px; flex-wrap: wrap; }
   .att-list { display: grid; }
-  .att-row { display: flex; align-items: center; gap: 12px; padding: 9px 2px; border-top: 1px solid var(--border); }
+  .att-row { display: flex; align-items: center; gap: 8px 12px; padding: 9px 2px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .att-controls { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  .seg { display: inline-flex; border: 1.5px solid var(--border); border-radius: 9px; overflow: hidden; }
+  .seg button { border: 0; background: transparent; padding: 5px 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--muted); }
+  .seg button + button { border-left: 1.5px solid var(--border); }
+  .seg button:hover { background: var(--hover); }
+  .seg button[aria-pressed="true"] { background: var(--pill-bg); color: var(--pill-fg); }
+  .seg button.asst[aria-pressed="true"] { background: var(--red); color: #ffffff; }
+  .pill { display: inline-block; border-radius: 999px; padding: 2px 9px; font-size: 0.74rem; font-weight: 700; white-space: nowrap; }
+  .pill.ok { background: var(--good); color: var(--good-fg); }
+  .pill.role { background: var(--pill-bg); color: var(--pill-fg); }
+  .pill.role.asst { background: var(--red); color: #ffffff; }
+  .pill.wait { background: var(--surface-alt); color: var(--muted); border: 1px solid var(--border); }
+  .att-row.locked .tick { cursor: default; }
+  .att-row.locked .tick:hover { border-color: var(--border); }
+  .att-row.locked .tick[aria-pressed="true"]:hover { border-color: var(--good); }
   .att-row:first-child { border-top: 0; }
   .tick {
     width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border); background: transparent;
@@ -178,6 +193,11 @@
   table.register th.day small { display: block; font-size: 0.62rem; opacity: 0.75; }
   table.register th.wkend, table.register td.wkend { background: var(--surface-alt); }
   table.register td.on { background: var(--on-cell-bg); color: var(--on-cell-fg); font-weight: 700; }
+  table.register td.on.asst { background: transparent; box-shadow: inset 0 0 0 1.5px var(--red); color: var(--red); }
+  table.register td sup { font-size: 0.6rem; margin-left: 1px; }
+  .status-cell { white-space: nowrap; }
+  .status-cell .sub { margin: 0 0 0 6px; font-size: 0.78rem; }
+  .print-only { display: none; }
   table.register td.tot { font-weight: 700; }
 
   /* ---------- Coaches ---------- */
@@ -209,6 +229,7 @@
     main { padding: 0; }
     .panel { border: 0; padding: 0; }
     .print-title { display: block; font-size: 1.1rem; margin-bottom: 10px; }
+    .print-only { display: inline; }
     .scroll { overflow: visible; }
     table.register { font-size: 0.6rem; }
     table.register th, table.register td { min-width: 0; padding: 2px 1px; }
@@ -284,7 +305,7 @@
             <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
           </div>
           <div class="cal-grid" id="cal-grid"></div>
-          <p class="cal-legend">Tap a day, then tick the coaches who attended. The number on each day is how many coaches came.</p>
+          <p class="cal-legend">Tap a day, tick who attended, and choose whether they came as a coach or as an assistant. The number on each day is how many people came.</p>
         </div>
 
         <div class="panel" id="day-panel">
@@ -317,6 +338,7 @@
             <button class="icon-btn" data-month-step="1" type="button" aria-label="Next month">›</button>
           </div>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" id="approve-all-btn" type="button">Approve all</button>
             <button class="btn btn-ghost btn-sm" id="csv-btn" type="button">Export CSV</button>
             <button class="btn btn-ghost btn-sm" id="print-btn" type="button">Print</button>
           </div>
@@ -325,13 +347,13 @@
         <div class="kpis" id="kpis"></div>
         <div class="scroll">
           <table>
-            <thead><tr><th>Coach</th><th class="num">Days attended</th><th class="num">Sessions</th><th style="width:30%;"></th></tr></thead>
+            <thead><tr><th>Name</th><th class="num">Days</th><th class="num">As coach</th><th class="num">As assistant</th><th class="num">Total sessions</th><th>Approval</th></tr></thead>
             <tbody id="report-body"></tbody>
           </table>
         </div>
         <div class="empty" id="report-empty" hidden>No attendance marked this month yet.</div>
         <div id="register-wrap">
-          <h3 class="grid-title">Day by day <span class="sub no-print" style="text-transform:none; letter-spacing:0; font-family:var(--font-body);">· tap a day to open it in the calendar</span></h3>
+          <h3 class="grid-title">Day by day <span class="sub" style="text-transform:none; letter-spacing:0; font-family:var(--font-body);">· filled = as coach, outlined <sup>A</sup> = as assistant<span class="no-print"> · tap a day to open it in the calendar</span></span></h3>
           <div class="scroll"><table class="register" id="register"></table></div>
         </div>
       </div>
@@ -393,7 +415,8 @@
 
   let pin = null;
   let coaches = [];            // [{id, name, archived}]
-  const months = new Map();    // "YYYY-MM" -> Map("coachId|YYYY-MM-DD" -> sessions)
+  const months = new Map();    // "YYYY-MM" -> Map("coachId|YYYY-MM-DD" -> {n, role})
+  const approvals = new Map(); // "YYYY-MM" -> Map(coachId -> approval row)
   let selDay = todayIso();
   let month = selDay.slice(0, 7);
 
@@ -430,6 +453,7 @@
     if (!res.ok) {
       const err = new Error((body && body.message) || "Request failed");
       err.badPin = res.status === 401 || (body && body.code === "28P01");
+      err.locked = !!body && body.code === "BFA01";
       throw err;
     }
     return body;
@@ -441,20 +465,44 @@
 
   function handleError(e) {
     if (e.badPin) { lock("The team PIN has changed. Enter the new PIN."); return; }
+    if (e.locked) { toast("Those sessions are approved and locked. Reopen them in the Monthly report to change them."); return; }
     toast(navigator.onLine === false ? "You're offline. Changes will not save until you reconnect." : "Couldn't save: " + e.message);
   }
 
   // ---------- data ----------
   async function loadCoaches() { coaches = (await withPin("list_coaches")) || []; }
   async function loadMonth(ym) {
-    const rows = await withPin("sessions_between", { from_day: dayIso(ym, 1), to_day: dayIso(ym, daysIn(ym)) });
+    const [rows, appr] = await Promise.all([
+      withPin("sessions_between", { from_day: dayIso(ym, 1), to_day: dayIso(ym, daysIn(ym)) }),
+      withPin("approvals_for", { in_month: dayIso(ym, 1) })
+    ]);
     const m = new Map();
-    (rows || []).forEach(r => m.set(r.coach_id + "|" + r.day, r.sessions));
+    (rows || []).forEach(r => m.set(r.coach_id + "|" + r.day, { n: r.sessions, role: r.role || "coach" }));
     months.set(ym, m);
+    approvals.set(ym, new Map((appr || []).map(a => [a.coach_id, a])));
   }
-  function sessionsOn(coachId, iso) {
+  function entryOn(coachId, iso) {
     const m = months.get(iso.slice(0, 7));
-    return (m && m.get(coachId + "|" + iso)) || 0;
+    return (m && m.get(coachId + "|" + iso)) || null;
+  }
+  function sessionsOn(coachId, iso) { const e = entryOn(coachId, iso); return e ? e.n : 0; }
+  function roleOn(coachId, iso) { const e = entryOn(coachId, iso); return e ? e.role : null; }
+  function approvalFor(coachId, iso) {
+    const m = approvals.get(iso.slice(0, 7));
+    return (m && m.get(coachId)) || null;
+  }
+  // New ticks default to the role the person had on their most recent day.
+  function lastRole(coachId) {
+    let best = null, role = "coach";
+    months.forEach(m => m.forEach((e, key) => {
+      const [id, day] = key.split("|");
+      if (id === coachId && (!best || day > best)) { best = day; role = e.role; }
+    }));
+    return role;
+  }
+  function lockedToast(coachId, iso) {
+    const c = coachById(coachId);
+    toast(`${c ? c.name : "This person"}'s ${monthLabel(iso.slice(0, 7))} sessions are approved. Reopen them in the Monthly report to change them.`);
   }
   function presentOn(iso) { return coaches.filter(c => sessionsOn(c.id, iso)); }
 
@@ -467,23 +515,64 @@
     } catch (e) { if (e.badPin) handleError(e); }
   }
 
-  async function setSessions(coachId, iso, n, quiet) {
+  async function setSessions(coachId, iso, n, quiet, role) {
+    if (approvalFor(coachId, iso)) { lockedToast(coachId, iso); return; }
     const ym = iso.slice(0, 7);
     if (!months.has(ym)) months.set(ym, new Map());
     const key = coachId + "|" + iso;
-    const before = months.get(ym).get(key) || 0;
+    const before = months.get(ym).get(key) || null;
     n = Math.max(0, Math.min(20, n));
-    if (n === before) return;
-    if (n) months.get(ym).set(key, n); else months.get(ym).delete(key);
+    const newRole = role || (before && before.role) || lastRole(coachId);
+    if (n === (before ? before.n : 0) && (!n || newRole === before.role)) return;
+    if (n) months.get(ym).set(key, { n, role: newRole }); else months.get(ym).delete(key);
     if (!quiet) render();
     busy++;
     try {
-      await withPin("set_sessions", { coach: coachId, on_day: iso, n });
+      await withPin("set_sessions", { coach: coachId, on_day: iso, n, in_role: n ? newRole : null });
     } catch (e) {
       if (before) months.get(ym).set(key, before); else months.get(ym).delete(key);
+      if (e.locked) { try { await loadMonth(ym); } catch (_) {} lockedToast(coachId, iso); render(); return; }
       render();
       handleError(e);
     } finally { busy--; }
+  }
+
+  async function approve(coachId) {
+    const ym = month;
+    busy++;
+    try {
+      const rows = (await withPin("approve_month", { coach: coachId, in_month: dayIso(ym, 1) })) || [];
+      const m = approvals.get(ym) || new Map();
+      rows.forEach(a => m.set(a.coach_id, a));
+      approvals.set(ym, m);
+      const c = coachId && coachById(coachId);
+      toast(c ? `${c.name} approved for ${monthLabel(ym)}. Their sessions are now locked.`
+              : `Approved ${rows.length} ${rows.length === 1 ? "person" : "people"} for ${monthLabel(ym)}. Their sessions are now locked.`);
+    } catch (e) { handleError(e); }
+    finally { busy--; }
+    render();
+  }
+
+  let reopenArmed = null; // { id, timer }: Reopen needs a second tap
+  async function reopen(coachId) {
+    if (!reopenArmed || reopenArmed.id !== coachId) {
+      if (reopenArmed) clearTimeout(reopenArmed.timer);
+      reopenArmed = { id: coachId, timer: setTimeout(() => { reopenArmed = null; renderReport(); }, 4000) };
+      renderReport();
+      return;
+    }
+    clearTimeout(reopenArmed.timer);
+    reopenArmed = null;
+    const ym = month;
+    busy++;
+    try {
+      await withPin("reopen_month", { coach: coachId, in_month: dayIso(ym, 1) });
+      if (approvals.has(ym)) approvals.get(ym).delete(coachId);
+      const c = coachById(coachId);
+      toast(`${c ? c.name : "Sessions"} reopened. You can edit ${monthLabel(ym)} again.`);
+    } catch (e) { handleError(e); }
+    finally { busy--; }
+    render();
   }
 
   async function addCoach(name) {
@@ -526,9 +615,9 @@
 
     // Everyone on the list, plus anyone removed from the list who was marked on this day.
     const list = coaches.filter(c => !c.archived || sessionsOn(c.id, selDay)).sort(byName);
-    const present = list.filter(c => sessionsOn(c.id, selDay)).length;
-    $("all-btn").hidden = !list.length || present === list.filter(c => !c.archived).length;
-    $("clear-btn").hidden = !present;
+    const open = list.filter(c => !approvalFor(c.id, selDay));
+    $("all-btn").hidden = !open.some(c => !c.archived && !sessionsOn(c.id, selDay));
+    $("clear-btn").hidden = !open.some(c => sessionsOn(c.id, selDay));
     resetClear();
 
     if (!list.length) {
@@ -538,15 +627,32 @@
     }
     $("att-list").innerHTML = list.map(c => {
       const n = sessionsOn(c.id, selDay);
-      return `<div class="att-row${n ? "" : " off"}">
-        <button class="tick" type="button" data-toggle="${c.id}" aria-pressed="${!!n}" aria-label="${esc(c.name)} attended">${n ? "✓" : ""}</button>
-        <span class="att-name" data-toggle="${c.id}">${esc(c.name)}</span>
-        ${n ? `<span class="counter">
-          <button type="button" data-step="${c.id}" data-d="-1" aria-label="One session fewer for ${esc(c.name)}">−</button>
-          <span class="n">${n}</span>
-          <button type="button" data-step="${c.id}" data-d="1" aria-label="One more session for ${esc(c.name)}">+</button>
-          <span class="unit">session${n === 1 ? "" : "s"}</span>
-        </span>` : ""}
+      const role = roleOn(c.id, selDay);
+      const locked = !!approvalFor(c.id, selDay);
+      const roleName = role === "assistant" ? "Assistant" : "Coach";
+      const controls = !n ? (locked ? `<div class="att-controls"><span class="pill ok">Approved</span></div>` : "")
+        : locked
+        ? `<div class="att-controls">
+            <span class="pill role${role === "assistant" ? " asst" : ""}">${roleName}</span>
+            <span class="unit">${n} session${n === 1 ? "" : "s"}</span>
+            <span class="pill ok">Approved</span>
+          </div>`
+        : `<div class="att-controls">
+            <div class="seg" role="group" aria-label="${esc(c.name)} came as">
+              <button type="button" data-role="coach" data-who="${c.id}" aria-pressed="${role === "coach"}">Coach</button>
+              <button type="button" class="asst" data-role="assistant" data-who="${c.id}" aria-pressed="${role === "assistant"}">Assistant</button>
+            </div>
+            <span class="counter">
+              <button type="button" data-step="${c.id}" data-d="-1" aria-label="One session fewer for ${esc(c.name)}">−</button>
+              <span class="n">${n}</span>
+              <button type="button" data-step="${c.id}" data-d="1" aria-label="One more session for ${esc(c.name)}">+</button>
+              <span class="unit">session${n === 1 ? "" : "s"}</span>
+            </span>
+          </div>`;
+      return `<div class="att-row${n ? "" : " off"}${locked ? " locked" : ""}">
+        <button class="tick" type="button" ${locked ? "disabled" : `data-toggle="${c.id}"`} aria-pressed="${!!n}" aria-label="${esc(c.name)} attended${locked ? " (approved, locked)" : ""}">${n ? "✓" : ""}</button>
+        <span class="att-name" ${locked ? "" : `data-toggle="${c.id}"`}>${esc(c.name)}</span>
+        ${controls}
       </div>`;
     }).join("");
   }
@@ -555,36 +661,51 @@
     const nDays = daysIn(month);
     const rows = coaches.map(c => {
       const per = [];
-      let days = 0, sessions = 0;
+      let days = 0, sessions = 0, asCoach = 0, asAssistant = 0;
       for (let d = 1; d <= nDays; d++) {
-        const n = sessionsOn(c.id, dayIso(month, d));
-        per.push(n);
-        if (n) { days++; sessions += n; }
+        const e = entryOn(c.id, dayIso(month, d));
+        per.push(e);
+        if (e) {
+          days++; sessions += e.n;
+          if (e.role === "assistant") asAssistant += e.n; else asCoach += e.n;
+        }
       }
-      return { c, per, days, sessions };
-    }).filter(r => r.sessions).sort((a, b) => b.sessions - a.sessions || byName(a.c, b.c));
-    return { nDays, rows, total: rows.reduce((s, r) => s + r.sessions, 0) };
+      return { c, per, days, sessions, asCoach, asAssistant, approval: approvalFor(c.id, dayIso(month, 1)) };
+    }).filter(r => r.sessions || r.approval).sort((a, b) => b.sessions - a.sessions || byName(a.c, b.c));
+    const sum = k => rows.reduce((s, r) => s + r[k], 0);
+    return { nDays, rows, total: sum("sessions"), asCoach: sum("asCoach"), asAssistant: sum("asAssistant") };
   }
+  const fmtDay = ts => new Date(ts).toLocaleDateString(undefined, { day: "numeric", month: "short" });
 
   function renderReport() {
     $("report-month-title").textContent = monthLabel(month);
-    const { nDays, rows, total } = reportData();
-    const activeDays = Array.from({ length: nDays }, (_, i) => rows.some(r => r.per[i])).filter(Boolean).length;
+    const { nDays, rows, total, asCoach, asAssistant } = reportData();
+    const approvedCount = rows.filter(r => r.approval).length;
     $("print-title").textContent = `BFA coach attendance · ${monthLabel(month)}`;
     $("kpis").innerHTML = `
-      <div class="kpi hot"><div class="v">${total}</div><div class="l">Sessions attended</div></div>
-      <div class="kpi"><div class="v">${rows.length}</div><div class="l">Coaches</div></div>
-      <div class="kpi"><div class="v">${activeDays}</div><div class="l">Days with sessions</div></div>`;
+      <div class="kpi hot"><div class="v">${total}</div><div class="l">Total sessions</div></div>
+      <div class="kpi"><div class="v">${asCoach}</div><div class="l">As coach</div></div>
+      <div class="kpi"><div class="v">${asAssistant}</div><div class="l">As assistant</div></div>
+      <div class="kpi"><div class="v">${approvedCount}<span style="font-size:1rem; color:var(--muted);"> / ${rows.length}</span></div><div class="l">Approved</div></div>`;
+    $("approve-all-btn").hidden = !rows.some(r => !r.approval && r.sessions);
 
     $("report-empty").hidden = rows.length > 0;
     $("register-wrap").hidden = rows.length === 0;
-    const max = Math.max(1, ...rows.map(r => r.sessions));
-    $("report-body").innerHTML = rows.map(r => `<tr>
+    $("report-body").innerHTML = rows.map(r => {
+      const armed = reopenArmed && reopenArmed.id === r.c.id;
+      const status = r.approval
+        ? `<span class="pill ok">Approved</span><span class="sub">${fmtDay(r.approval.approved_at)}</span>
+           <button class="btn btn-ghost btn-sm no-print${armed ? " warn" : ""}" type="button" data-reopen="${r.c.id}" style="margin-left:6px;">${armed ? "Tap again to reopen" : "Reopen"}</button>`
+        : `<button class="btn btn-primary btn-sm no-print" type="button" data-approve="${r.c.id}">Approve</button><span class="print-only">Not approved</span>`;
+      return `<tr>
         <td>${esc(r.c.name)}${r.c.archived ? ' <span class="sub">(removed)</span>' : ""}</td>
         <td class="num">${r.days}</td>
+        <td class="num">${r.asCoach || "–"}</td>
+        <td class="num">${r.asAssistant || "–"}</td>
         <td class="num"><strong>${r.sessions}</strong></td>
-        <td><div class="bar"><i style="width:${Math.round(r.sessions / max * 100)}%"></i></div></td>
-      </tr>`).join("") + (rows.length ? `<tr class="total"><td>Total</td><td></td><td class="num">${total}</td><td></td></tr>` : "");
+        <td class="status-cell">${status}</td>
+      </tr>`;
+    }).join("") + (rows.length ? `<tr class="total"><td>Total</td><td></td><td class="num">${asCoach}</td><td class="num">${asAssistant}</td><td class="num">${total}</td><td></td></tr>` : "");
 
     if (!rows.length) { $("register").innerHTML = ""; return; }
     const heads = [], wk = [];
@@ -594,8 +715,10 @@
       heads.push(`<th class="day${wk[d - 1] ? " wkend" : ""}" data-goto="${toIso(dt)}" title="Open ${dt.toLocaleDateString()}">${d}<small>${dt.toLocaleDateString(undefined, { weekday: "narrow" })}</small></th>`);
     }
     $("register").innerHTML = `<thead><tr><th>Coach</th>${heads.join("")}<th>Total</th></tr></thead><tbody>${
-      rows.map(r => `<tr><td>${esc(r.c.name)}</td>${r.per.map((n, i) =>
-        `<td class="${n ? "on" : ""}${wk[i] ? " wkend" : ""}">${n || ""}</td>`).join("")}<td class="tot">${r.sessions}</td></tr>`).join("")
+      rows.map(r => `<tr><td>${esc(r.c.name)}</td>${r.per.map((e, i) => {
+        const asst = e && e.role === "assistant";
+        return `<td class="${e ? "on" : ""}${asst ? " asst" : ""}${wk[i] ? " wkend" : ""}"${e ? ` title="${asst ? "Assistant" : "Coach"}"` : ""}>${e ? e.n + (asst ? "<sup>A</sup>" : "") : ""}</td>`;
+      }).join("")}<td class="tot">${r.sessions}</td></tr>`).join("")
     }</tbody>`;
   }
 
@@ -653,12 +776,15 @@
   }
 
   document.addEventListener("click", async e => {
-    const t = e.target.closest("[data-day],[data-toggle],[data-step],[data-goto],[data-goto-tab],[data-month-step],[data-archive],[data-restore]");
+    const t = e.target.closest("[data-day],[data-toggle],[data-step],[data-role],[data-approve],[data-reopen],[data-goto],[data-goto-tab],[data-month-step],[data-archive],[data-restore]");
     if (!t) return;
     const ds = t.dataset;
     if (ds.day) selectDay(ds.day);
     else if (ds.toggle) setSessions(ds.toggle, selDay, sessionsOn(ds.toggle, selDay) ? 0 : 1);
     else if (ds.step) setSessions(ds.step, selDay, sessionsOn(ds.step, selDay) + Number(ds.d));
+    else if (ds.role) setSessions(ds.who, selDay, sessionsOn(ds.who, selDay), false, ds.role);
+    else if (ds.approve) approve(ds.approve);
+    else if (ds.reopen) reopen(ds.reopen);
     else if (ds.monthStep) goToMonth(addMonths(month, Number(ds.monthStep)));
     else if (ds.goto) { showTab("calendar"); selectDay(ds.goto); }
     else if (ds.gotoTab) { showTab(ds.gotoTab); $("bulk-names").focus(); }
@@ -667,7 +793,7 @@
 
   $("all-btn").addEventListener("click", async () => {
     const day = selDay;
-    const todo = coaches.filter(c => !c.archived && !sessionsOn(c.id, day));
+    const todo = coaches.filter(c => !c.archived && !sessionsOn(c.id, day) && !approvalFor(c.id, day));
     await Promise.all(todo.map(c => setSessions(c.id, day, 1, true)));
     render();
   });
@@ -681,7 +807,7 @@
     }
     resetClear();
     const day = selDay;
-    await Promise.all(presentOn(day).map(c => setSessions(c.id, day, 0, true)));
+    await Promise.all(presentOn(day).filter(c => !approvalFor(c.id, day)).map(c => setSessions(c.id, day, 0, true)));
     render();
   });
 
@@ -748,12 +874,16 @@
   });
 
   $("csv-btn").addEventListener("click", () => {
-    const { nDays, rows, total } = reportData();
+    const { nDays, rows, total, asCoach, asAssistant } = reportData();
     if (!rows.length) { toast("Nothing to export for this month."); return; }
     const dates = Array.from({ length: nDays }, (_, i) => dayIso(month, i + 1));
-    const out = [["Coach", "Days attended", "Sessions attended", ...dates]];
-    rows.forEach(r => out.push([r.c.name, r.days, r.sessions, ...r.per.map(n => n || "")]));
-    out.push(["Total", "", total]);
+    const out = [["Name", "Days attended", "Sessions as coach", "Sessions as assistant", "Total sessions", "Approval", ...dates]];
+    rows.forEach(r => out.push([r.c.name, r.days, r.asCoach, r.asAssistant, r.sessions,
+      r.approval ? "Approved " + new Date(r.approval.approved_at).toLocaleDateString() : "Not approved",
+      ...r.per.map(e => e ? `${e.n} ${e.role === "assistant" ? "A" : "C"}` : "")]));
+    out.push(["Total", "", asCoach, asAssistant, total]);
+    out.push([]);
+    out.push(["Day cells: C = as coach, A = as assistant, number = sessions that day"]);
     const csv = "﻿" + out.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
@@ -762,6 +892,7 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
   $("print-btn").addEventListener("click", () => window.print());
+  $("approve-all-btn").addEventListener("click", () => approve(null));
 
   $("pin-form").addEventListener("submit", async e => {
     e.preventDefault();
