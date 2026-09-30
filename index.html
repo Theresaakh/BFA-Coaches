@@ -77,7 +77,7 @@
   }
   .tabs button:hover { color: #fff; background: rgba(255,255,255,0.08); }
   .tabs button[aria-selected="true"] { color: #fff; background: rgba(255,255,255,0.14); box-shadow: inset 0 -3px 0 #ffffff; }
-  @media (max-width: 480px) { .tabs button { padding: 10px 9px; font-size: 0.8rem; letter-spacing: 0.03em; } .brand h1 { font-size: 1.15rem; } }
+  @media (max-width: 480px) { .tabs button { padding: 10px 9px; font-size: 0.8rem; letter-spacing: 0.03em; } .tabs .long { display: none; } .brand h1 { font-size: 1.15rem; } }
 
   main { max-width: 1080px; margin: 0 auto; padding-block: 20px 40px; padding-inline: 16px; display: grid; gap: 16px; }
   main > section { min-width: 0; }
@@ -244,6 +244,31 @@
     table.register th, table.register td { min-width: 0; padding: 2px 1px; }
     table.register th:first-child, table.register td:first-child { min-width: 90px; }
   }
+
+  /* ---------- Branches ---------- */
+  .scope { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .scope .lbl { font-family: var(--font-head); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.75; }
+  .scope select {
+    background: rgba(255,255,255,0.12); color: #ffffff; border: 1.5px solid rgba(255,255,255,0.5); border-radius: 999px;
+    padding: 6px 12px; font-family: var(--font-head); font-size: 0.9rem; letter-spacing: 0.03em; cursor: pointer; max-width: 100%;
+  }
+  .scope select option { color: #161c3f; background: #ffffff; }
+  .scope .fixed { font-family: var(--font-head); font-size: 0.95rem; letter-spacing: 0.04em; text-transform: uppercase; background: rgba(255,255,255,0.14); border-radius: 999px; padding: 4px 12px; }
+  .note { background: var(--surface-alt); border: 1px dashed var(--border); border-radius: 10px; padding: 10px 12px; color: var(--muted); font-size: 0.86rem; margin-bottom: 12px; }
+  .note.warn { border-color: var(--red); color: var(--ink); }
+  .branch-tag { color: var(--muted); font-size: 0.8rem; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { border: 1.5px solid var(--border); background: transparent; border-radius: 999px; padding: 4px 10px; font-size: 0.78rem; cursor: pointer; color: var(--muted); }
+  .chip:hover { border-color: var(--navy); }
+  .chip[aria-pressed="true"] { background: var(--pill-bg); border-color: var(--pill-bg); color: var(--pill-fg); font-weight: 600; }
+  .all-coach { padding: 10px 0; border-top: 1px solid var(--border); display: grid; gap: 8px; }
+  .all-coach:first-child { border-top: 0; }
+  .all-coach .top { display: flex; gap: 8px; align-items: center; }
+  .all-coach .top input { flex: 1 1 auto; }
+  .branch-row { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto; gap: 8px; align-items: end; padding: 12px 0; border-top: 1px solid var(--border); }
+  .branch-row:first-child { border-top: 0; }
+  @media (max-width: 560px) { .branch-row { grid-template-columns: 1fr auto; } .branch-row .nm { grid-column: 1 / -1; } }
+  select.inline { padding: 9px 10px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--surface-alt); }
 </style>
 </head>
 <body>
@@ -258,7 +283,7 @@
 
     <form id="gate-setup" hidden>
       <div style="display:grid; gap:12px;">
-        <p>First time here. Choose a team PIN (4–8 digits). Everyone who takes attendance will use it.</p>
+        <p>First time here. Choose the main admin PIN (4–8 digits).</p>
         <input type="password" id="setup-pin" class="pin" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="••••••" aria-label="New PIN">
         <input type="password" id="setup-pin2" class="pin" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="repeat" aria-label="Repeat PIN">
         <div class="err" id="setup-err"></div>
@@ -268,7 +293,7 @@
 
     <form id="gate-login" hidden>
       <div style="display:grid; gap:12px;">
-        <p>Enter the team PIN.</p>
+        <p>Enter your branch PIN, or the main admin PIN.</p>
         <input type="password" id="login-pin" class="pin" inputmode="numeric" maxlength="8" autocomplete="current-password" placeholder="••••••" aria-label="PIN">
         <label class="check"><input type="checkbox" id="remember" checked> Remember on this device</label>
         <div class="err" id="login-err"></div>
@@ -289,10 +314,16 @@
         </div>
         <button class="lock" id="lock-btn" type="button">Lock</button>
       </div>
+      <div class="scope">
+        <span class="lbl">Branch</span>
+        <select id="scope-select" aria-label="Branch" hidden></select>
+        <span class="fixed" id="scope-fixed" hidden></span>
+      </div>
       <nav class="tabs" role="tablist">
         <button role="tab" data-tab="calendar" aria-selected="true">Calendar</button>
-        <button role="tab" data-tab="report" aria-selected="false">Monthly report</button>
+        <button role="tab" data-tab="report" aria-selected="false"><span class="long">Monthly </span>report</button>
         <button role="tab" data-tab="coaches" aria-selected="false">Coaches</button>
+        <button role="tab" data-tab="branches" aria-selected="false" id="branches-tab" hidden>Branches</button>
       </nav>
     </div>
   </header>
@@ -314,7 +345,7 @@
             <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
           </div>
           <div class="cal-grid" id="cal-grid"></div>
-          <p class="cal-legend">Tap a day and tick who attended. Then set how many sessions each person did as coach and as assistant (someone can do both on the same day). The number on each day is how many people came.</p>
+          <p class="cal-legend" id="cal-legend"></p>
         </div>
 
         <div class="panel" id="day-panel">
@@ -328,6 +359,7 @@
               <button class="btn btn-ghost btn-sm" id="clear-btn" type="button">Clear day</button>
             </div>
           </div>
+          <div class="note" id="day-note" hidden>Showing every branch. Choose a branch at the top to add or change sessions.</div>
           <div class="att-list" id="att-list"></div>
           <form class="quick-add" id="quick-form" autocomplete="off">
             <input type="text" id="quick-name" placeholder="Add another coach to this day" aria-label="Coach name">
@@ -356,7 +388,7 @@
         <div class="kpis" id="kpis"></div>
         <div class="scroll">
           <table>
-            <thead><tr><th>Name</th><th class="num">Days</th><th class="num">As coach</th><th class="num">As assistant</th><th class="num">Total sessions</th><th>Approval</th></tr></thead>
+            <thead><tr><th>Name</th><th class="branch-col">Branch</th><th class="num">Days</th><th class="num">As coach</th><th class="num">As assistant</th><th class="num">Total sessions</th><th>Approval</th></tr></thead>
             <tbody id="report-body"></tbody>
           </table>
         </div>
@@ -372,30 +404,70 @@
     <section data-view="coaches" hidden>
       <div class="coaches-layout">
         <div class="panel">
-          <h2>Add coaches</h2>
-          <p class="sub">Type or paste the names, one per line. Names already on the list are skipped.</p>
+          <h2 id="bulk-title">Add coaches</h2>
+          <p class="sub" id="bulk-sub">Type or paste the names, one per line. Names already on the list are skipped.</p>
           <form id="bulk-form" style="display:grid; gap:10px; margin-top:12px;">
+            <div id="bulk-branch-wrap" hidden>
+              <label class="cap" for="bulk-branch">Add them to</label>
+              <select class="inline" id="bulk-branch"></select>
+            </div>
             <textarea id="bulk-names" placeholder="Rami Khoury&#10;Nadim Aoun&#10;Joe Saade" aria-label="Coach names, one per line"></textarea>
             <div><button class="btn btn-primary" type="submit">Add to list</button></div>
           </form>
         </div>
 
-        <div class="panel">
+        <!-- One branch -->
+        <div class="panel" id="branch-coaches">
           <div class="panel-head" style="margin-bottom:6px;">
             <div>
               <h2>Coach list <span id="coach-count" style="color:var(--red);"></span></h2>
-              <p class="sub">Edit a name to fix it. Removed coaches keep their past attendance in reports.</p>
+              <p class="sub" id="coach-list-sub"></p>
             </div>
           </div>
           <div id="coach-list"></div>
           <details id="archived-wrap">
-            <summary>Removed coaches</summary>
+            <summary>Removed from this branch</summary>
             <div id="archived-list" style="margin-top:8px;"></div>
           </details>
         </div>
 
+        <!-- Admin, all branches -->
+        <div class="panel" id="all-coaches" hidden>
+          <div class="panel-head" style="margin-bottom:6px;">
+            <div>
+              <h2>All coaches <span id="all-count" style="color:var(--red);"></span></h2>
+              <p class="sub">Tap a branch to add or remove the coach there. Edit a name to fix it.</p>
+            </div>
+          </div>
+          <div class="note warn" id="unassigned-note" hidden></div>
+          <div id="unassigned-list"></div>
+          <div id="all-list"></div>
+          <details id="hidden-wrap">
+            <summary>Hidden coaches (no branch)</summary>
+            <div id="hidden-list" style="margin-top:8px;"></div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- BRANCHES (main admin) -->
+    <section data-view="branches" hidden>
+      <div class="coaches-layout">
         <div class="panel">
-          <h2>Change team PIN</h2>
+          <h2>Branches and PINs</h2>
+          <p class="sub">Give each branch its own PIN. Someone who opens the app with a branch PIN only sees and edits that branch.</p>
+          <div id="branch-list" style="margin-top:10px;"></div>
+          <form class="row-form" id="add-branch-form" style="margin-top:14px;" autocomplete="off">
+            <div>
+              <label class="cap" for="new-branch">New branch</label>
+              <input type="text" id="new-branch" placeholder="Branch name">
+            </div>
+            <button class="btn btn-ghost" type="submit">Add branch</button>
+          </form>
+        </div>
+        <div class="panel">
+          <h2>Main admin PIN</h2>
+          <p class="sub">This PIN sees every branch and manages branches and PINs.</p>
           <form class="row-form" id="pin-form" style="margin-top:12px;" autocomplete="off">
             <div>
               <label class="cap" for="new-pin">New PIN (4–8 digits)</label>
@@ -414,18 +486,23 @@
 <script>
 (() => {
   // Supabase project "bfa-coach-attendance". The publishable key is safe to ship:
-  // tables are closed to it, and every data function checks the team PIN on the server.
+  // tables are closed to it, and every data function checks the PIN on the server,
+  // including which branch that PIN may see.
   const API = "https://pwttmxipjuigowkknceh.supabase.co/rest/v1/rpc/";
   const KEY = "sb_publishable_88oucQDEBASRCyqWpnR6zA_LXmdxmD6";
   const PIN_KEY = "bfaCoachPin";
+  const SCOPE_KEY = "bfaCoachScope";
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
   let pin = null;
-  let coaches = [];            // [{id, name, archived}]
-  const months = new Map();    // "YYYY-MM" -> Map("coachId|YYYY-MM-DD" -> {coach, assistant} session counts)
-  const approvals = new Map(); // "YYYY-MM" -> Map(coachId -> approval row)
+  let me = null;               // {is_admin, branch_id, branch_name}
+  let branches = [];           // [{id, name, sort, has_pin}]
+  let adminScope = "";         // admin's chosen branch id, "" = all branches
+  let coaches = [];            // [{id, name, archived, member_of: [branchId], removed_from: [branchId]}]
+  const months = new Map();    // "YYYY-MM" -> Map("coach|day|branch" -> {coach, assistant} session counts)
+  const approvals = new Map(); // "YYYY-MM" -> Map("coach|branch" -> approval row)
   let selDay = todayIso();
   let month = selDay.slice(0, 7);
 
@@ -441,14 +518,22 @@
   function dayIso(ym, d) { return `${ym}-${String(d).padStart(2, "0")}`; }
   function monthLabel(ym) { return parseIso(ym + "-01").toLocaleDateString(undefined, { month: "long", year: "numeric" }); }
   function coachById(id) { return coaches.find(c => c.id === id); }
+  function coachName(id) { const c = coachById(id); return c ? c.name : "Unknown coach"; }
   function byName(a, b) { return a.name.localeCompare(b.name, undefined, { sensitivity: "base" }); }
   const cleanName = s => s.trim().replace(/\s+/g, " ");
+
+  const isAdmin = () => !!(me && me.is_admin);
+  // The branch being worked on: a branch admin's own branch, or the admin's pick (null = all branches).
+  function scopeBranch() { return isAdmin() ? (adminScope || null) : me.branch_id; }
+  function branchName(id) { const b = branches.find(x => x.id === id); return b ? b.name : "No branch yet"; }
+  function branchOrder(id) { const i = branches.findIndex(x => x.id === id); return i < 0 ? 999 : i; }
+  const inBranch = (c, b) => c.member_of.includes(b);
 
   function toast(msg) {
     const t = $("toast");
     t.textContent = msg; t.hidden = false;
     clearTimeout(toast.timer);
-    toast.timer = setTimeout(() => { t.hidden = true; }, 3200);
+    toast.timer = setTimeout(() => { t.hidden = true; }, 3400);
   }
 
   async function rpc(fn, args = {}) {
@@ -461,80 +546,104 @@
     const body = text ? JSON.parse(text) : null;
     if (!res.ok) {
       const err = new Error((body && body.message) || "Request failed");
-      err.badPin = res.status === 401 || (body && body.code === "28P01");
-      err.locked = !!body && body.code === "BFA01";
+      err.code = body && body.code;
+      err.badPin = res.status === 401 || err.code === "28P01";
+      err.locked = err.code === "BFA01";
       throw err;
     }
     return body;
   }
   const withPin = (fn, args = {}) => rpc(fn, { p: pin, ...args });
 
-  function storedPin() { try { return localStorage.getItem(PIN_KEY); } catch (e) { return null; } }
-  function storePin(v) { try { v ? localStorage.setItem(PIN_KEY, v) : localStorage.removeItem(PIN_KEY); } catch (e) {} }
+  function load(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+  function save(key, v) { try { v ? localStorage.setItem(key, v) : localStorage.removeItem(key); } catch (e) {} }
 
   function handleError(e) {
-    if (e.badPin) { lock("The team PIN has changed. Enter the new PIN."); return; }
+    if (e.badPin) { lock("Your PIN has changed. Enter the new PIN."); return; }
     if (e.locked) { toast("Those sessions are approved and locked. Reopen them in the Monthly report to change them."); return; }
+    if (e.code === "23505") { toast("There is already a coach or branch with that name."); return; }
+    if (e.code === "42501" || e.code === "BFA02") { toast(e.message + "."); return; }
     toast(navigator.onLine === false ? "You're offline. Changes will not save until you reconnect." : "Couldn't save: " + e.message);
   }
 
   // ---------- data ----------
-  async function loadCoaches() { coaches = (await withPin("list_coaches")) || []; }
+  const sKey = (coach, day, branch) => `${coach}|${day}|${branch || ""}`;
+  const aKey = (coach, branch) => `${coach}|${branch || ""}`;
+
+  async function loadBranches() { branches = (await withPin("list_branches")) || []; }
+  async function loadCoaches() { coaches = (await withPin("list_coaches", { in_branch: scopeBranch() })) || []; }
   async function loadMonth(ym) {
+    const b = scopeBranch();
     const [rows, appr] = await Promise.all([
-      withPin("sessions_between", { from_day: dayIso(ym, 1), to_day: dayIso(ym, daysIn(ym)) }),
-      withPin("approvals_for", { in_month: dayIso(ym, 1) })
+      withPin("sessions_between", { in_branch: b, from_day: dayIso(ym, 1), to_day: dayIso(ym, daysIn(ym)) }),
+      withPin("approvals_for", { in_branch: b, in_month: dayIso(ym, 1) })
     ]);
     const m = new Map();
     (rows || []).forEach(r => {
-      const key = r.coach_id + "|" + r.day;
+      const key = sKey(r.coach_id, r.day, r.branch_id);
       const e = m.get(key) || { coach: 0, assistant: 0 };
       e[r.role === "assistant" ? "assistant" : "coach"] += r.sessions;
       m.set(key, e);
     });
     months.set(ym, m);
-    approvals.set(ym, new Map((appr || []).map(a => [a.coach_id, a])));
+    approvals.set(ym, new Map((appr || []).map(a => [aKey(a.coach_id, a.branch_id), a])));
   }
+  // Entry for one coach on one day in the branch being edited.
   function entryOn(coachId, iso) {
     const m = months.get(iso.slice(0, 7));
-    return (m && m.get(coachId + "|" + iso)) || null;
+    return (m && m.get(sKey(coachId, iso, scopeBranch()))) || null;
   }
   function sessionsOn(coachId, iso) { const e = entryOn(coachId, iso); return e ? e.coach + e.assistant : 0; }
   function roleCount(coachId, iso, role) { const e = entryOn(coachId, iso); return e ? e[role] : 0; }
-  function approvalFor(coachId, iso) {
-    const m = approvals.get(iso.slice(0, 7));
-    return (m && m.get(coachId)) || null;
+  // Every entry on a day across the loaded scope: [{coach, branch, e}]
+  function entriesOnDay(iso) {
+    const m = months.get(iso.slice(0, 7));
+    if (!m) return [];
+    const out = [];
+    m.forEach((e, key) => {
+      const [coach, day, branch] = key.split("|");
+      if (day === iso) out.push({ coach, branch: branch || null, e });
+    });
+    return out;
   }
-  // New ticks default to the role the person had on their most recent day.
+  function approvalFor(coachId, iso, branch = scopeBranch()) {
+    const m = approvals.get(iso.slice(0, 7));
+    return (m && m.get(aKey(coachId, branch))) || null;
+  }
+  // New ticks default to the role the person had on their most recent day in this branch.
   function lastRole(coachId) {
     let best = null, role = "coach";
+    const b = scopeBranch() || "";
     months.forEach(m => m.forEach((e, key) => {
-      const [id, day] = key.split("|");
-      if (id === coachId && (!best || day > best)) { best = day; role = e.coach ? "coach" : "assistant"; }
+      const [id, day, br] = key.split("|");
+      if (id === coachId && br === b && (!best || day > best)) { best = day; role = e.coach ? "coach" : "assistant"; }
     }));
     return role;
   }
   function lockedToast(coachId, iso) {
-    const c = coachById(coachId);
-    toast(`${c ? c.name : "This person"}'s ${monthLabel(iso.slice(0, 7))} sessions are approved. Reopen them in the Monthly report to change them.`);
+    toast(`${coachName(coachId)}'s ${monthLabel(iso.slice(0, 7))} sessions are approved. Reopen them in the Monthly report to change them.`);
   }
-  function presentOn(iso) { return coaches.filter(c => sessionsOn(c.id, iso)); }
 
-  let busy = 0; // writes in flight; background refresh waits so it can't undo a tick on screen
+  let busy = 0; // writes in flight; background refresh waits so it can't undo a change on screen
   async function refresh() {
     if (!pin || busy) return;
     try {
-      await Promise.all([loadCoaches(), loadMonth(month)]);
+      await Promise.all([loadBranches(), loadCoaches(), loadMonth(month)]);
       if (!busy) render();
     } catch (e) { if (e.badPin) handleError(e); }
   }
+  async function reloadScope() {
+    months.clear(); approvals.clear();
+    await Promise.all([loadCoaches(), loadMonth(month)]);
+    render();
+  }
 
-  // Shared by the two writes below: apply the change on screen, save it, and undo it on screen if saving fails.
+  // Apply a change on screen, save it, and undo it on screen if saving fails.
   async function writeDay(coachId, iso, next, quiet, call) {
     if (approvalFor(coachId, iso)) { lockedToast(coachId, iso); return; }
     const ym = iso.slice(0, 7);
     if (!months.has(ym)) months.set(ym, new Map());
-    const key = coachId + "|" + iso;
+    const key = sKey(coachId, iso, scopeBranch());
     const before = months.get(ym).get(key) || null;
     if (next && next.coach + next.assistant) months.get(ym).set(key, next); else months.get(ym).delete(key);
     if (!quiet) render();
@@ -548,42 +657,51 @@
       handleError(e);
     } finally { busy--; }
   }
-  // Set how many sessions a person did in one role on one day (0 removes that role).
   function setRole(coachId, iso, role, n, quiet) {
     n = Math.max(0, Math.min(20, n));
     const before = entryOn(coachId, iso) || { coach: 0, assistant: 0 };
     if (before[role] === n) return;
     return writeDay(coachId, iso, { ...before, [role]: n }, quiet,
-      () => withPin("set_role_sessions", { coach: coachId, on_day: iso, in_role: role, n }));
+      () => withPin("set_role_sessions", { in_branch: scopeBranch(), coach: coachId, on_day: iso, in_role: role, n }));
   }
-  // Untick a person for a day (both roles).
   function clearPerson(coachId, iso, quiet) {
     if (!sessionsOn(coachId, iso)) return;
     return writeDay(coachId, iso, null, quiet,
-      () => withPin("set_sessions", { coach: coachId, on_day: iso, n: 0 }));
+      () => withPin("clear_person_day", { in_branch: scopeBranch(), coach: coachId, on_day: iso }));
   }
 
-  async function approve(coachId) {
+  // Add a coach (by name) to a branch; returns the coach.
+  async function addCoachTo(branch, name) {
+    const [c] = await withPin("add_coach", { in_branch: branch, coach_name: name });
+    let local = coachById(c.id);
+    if (!local) { local = { id: c.id, name: c.name, archived: false, member_of: [], removed_from: [] }; coaches.push(local); }
+    local.archived = false;
+    if (!local.member_of.includes(branch)) local.member_of.push(branch);
+    local.removed_from = local.removed_from.filter(b => b !== branch);
+    return local;
+  }
+
+  async function approve(coachId, branch) {
     const ym = month;
     busy++;
     try {
-      const rows = (await withPin("approve_month", { coach: coachId, in_month: dayIso(ym, 1) })) || [];
+      const rows = (await withPin("approve_month", { in_branch: branch, coach: coachId, in_month: dayIso(ym, 1) })) || [];
       const m = approvals.get(ym) || new Map();
-      rows.forEach(a => m.set(a.coach_id, a));
+      rows.forEach(a => m.set(aKey(a.coach_id, a.branch_id), a));
       approvals.set(ym, m);
-      const c = coachId && coachById(coachId);
-      toast(c ? `${c.name} approved for ${monthLabel(ym)}. Their sessions are now locked.`
-              : `Approved ${rows.length} ${rows.length === 1 ? "person" : "people"} for ${monthLabel(ym)}. Their sessions are now locked.`);
+      toast(coachId ? `${coachName(coachId)} approved for ${monthLabel(ym)}. Their sessions are now locked.`
+                    : `Approved ${rows.length} ${rows.length === 1 ? "entry" : "entries"} for ${monthLabel(ym)}. Those sessions are now locked.`);
     } catch (e) { handleError(e); }
     finally { busy--; }
     render();
   }
 
-  let reopenArmed = null; // { id, timer }: Reopen needs a second tap
-  async function reopen(coachId) {
-    if (!reopenArmed || reopenArmed.id !== coachId) {
+  let reopenArmed = null; // { key, timer }: Reopen needs a second tap
+  async function reopen(coachId, branch) {
+    const key = aKey(coachId, branch);
+    if (!reopenArmed || reopenArmed.key !== key) {
       if (reopenArmed) clearTimeout(reopenArmed.timer);
-      reopenArmed = { id: coachId, timer: setTimeout(() => { reopenArmed = null; renderReport(); }, 4000) };
+      reopenArmed = { key, timer: setTimeout(() => { reopenArmed = null; renderReport(); }, 4000) };
       renderReport();
       return;
     }
@@ -592,31 +710,43 @@
     const ym = month;
     busy++;
     try {
-      await withPin("reopen_month", { coach: coachId, in_month: dayIso(ym, 1) });
-      if (approvals.has(ym)) approvals.get(ym).delete(coachId);
-      const c = coachById(coachId);
-      toast(`${c ? c.name : "Sessions"} reopened. You can edit ${monthLabel(ym)} again.`);
+      await withPin("reopen_month", { in_branch: branch, coach: coachId, in_month: dayIso(ym, 1) });
+      if (approvals.has(ym)) approvals.get(ym).delete(key);
+      toast(`${coachName(coachId)} reopened. You can edit ${monthLabel(ym)} again.`);
     } catch (e) { handleError(e); }
     finally { busy--; }
     render();
   }
 
-  async function addCoach(name) {
-    const c = await withPin("add_coach", { coach_name: name });
-    coaches = coaches.filter(x => x.id !== c.id).concat(c);
-    return c;
-  }
-
   // ---------- rendering ----------
   function render() {
+    renderScope();
     renderCalendar();
     renderDay();
     renderReport();
     renderCoaches();
+    renderBranches();
+  }
+
+  function renderScope() {
+    const sel = $("scope-select");
+    if (isAdmin()) {
+      sel.hidden = false; $("scope-fixed").hidden = true;
+      sel.innerHTML = `<option value="">All branches</option>` +
+        branches.map(b => `<option value="${b.id}">${esc(b.name)}</option>`).join("");
+      sel.value = adminScope;
+    } else {
+      sel.hidden = true; $("scope-fixed").hidden = false;
+      $("scope-fixed").textContent = me.branch_name || "";
+    }
+    $("branches-tab").hidden = !isAdmin();
   }
 
   function renderCalendar() {
     $("cal-title").textContent = monthLabel(month);
+    $("cal-legend").textContent = scopeBranch()
+      ? "Tap a day and tick who attended. Then set how many sessions each person did as coach and as assistant (someone can do both on the same day). The number on each day is how many people came."
+      : "Showing every branch. The number on each day is how many people came across all branches. Choose a branch at the top to take attendance.";
     const first = parseIso(month + "-01");
     const offset = (first.getDay() + 6) % 7; // weeks start on Monday
     const today = todayIso();
@@ -625,9 +755,9 @@
     for (let d = 1; d <= daysIn(month); d++) {
       const iso = dayIso(month, d);
       const dow = parseIso(iso).getDay();
-      const n = presentOn(iso).length;
+      const n = new Set(entriesOnDay(iso).map(x => x.coach)).size;
       const cls = ["cal-day", dow === 0 || dow === 6 ? "wkend" : "", iso === today ? "today" : "", iso === selDay ? "sel" : ""].join(" ");
-      const label = parseIso(iso).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }) + (n ? `, ${n} coach${n === 1 ? "" : "es"}` : "");
+      const label = parseIso(iso).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }) + (n ? `, ${n} ${n === 1 ? "person" : "people"}` : "");
       html += `<button type="button" class="${cls}" data-day="${iso}" aria-label="${esc(label)}" aria-pressed="${iso === selDay}">
         <span class="d">${d}</span>${n ? `<span class="c">${n}</span>` : ""}</button>`;
     }
@@ -638,17 +768,33 @@
     const d = parseIso(selDay);
     $("day-title").textContent = selDay === todayIso() ? "Today" : d.toLocaleDateString(undefined, { weekday: "long" });
     $("day-sub").textContent = d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-
-    // Everyone on the list, plus anyone removed from the list who was marked on this day.
-    const list = coaches.filter(c => !c.archived || sessionsOn(c.id, selDay)).sort(byName);
-    const open = list.filter(c => !approvalFor(c.id, selDay));
-    $("all-btn").hidden = !open.some(c => !c.archived && !sessionsOn(c.id, selDay));
-    $("clear-btn").hidden = !open.some(c => sessionsOn(c.id, selDay));
+    const b = scopeBranch();
+    $("day-note").hidden = !!b;
+    $("quick-form").hidden = !b;
     resetClear();
 
+    if (!b) { // admin, all branches: read-only overview of the day
+      $("all-btn").hidden = $("clear-btn").hidden = true;
+      const list = entriesOnDay(selDay).map(x => ({ ...x, name: coachName(x.coach) }))
+        .sort((a, c) => branchOrder(a.branch) - branchOrder(c.branch) || byName(a, c));
+      $("att-list").innerHTML = list.length ? list.map(x => `<div class="att-row">
+          <span class="tick" aria-hidden="true" style="display:grid; place-items:center; background:var(--good); border-color:var(--good); color:var(--good-fg);">✓</span>
+          <span class="att-name" style="cursor:default;">${esc(x.name)} <span class="branch-tag">· ${esc(branchName(x.branch))}</span></span>
+          <div class="att-controls">${["coach", "assistant"].map(r => x.e[r] ? `<span class="pill role${r === "assistant" ? " asst" : ""}">${x.e[r]} as ${r}</span>` : "").join("")}
+            ${approvalFor(x.coach, selDay, x.branch) ? `<span class="pill ok">Approved</span>` : ""}</div>
+        </div>`).join("") : `<div class="empty">Nobody marked on this day in any branch.</div>`;
+      return;
+    }
+
+    // Everyone on this branch's list, plus anyone removed from it who was marked on this day.
+    const list = coaches.filter(c => inBranch(c, b) || sessionsOn(c.id, selDay)).sort(byName);
+    const open = list.filter(c => !approvalFor(c.id, selDay));
+    $("all-btn").hidden = !open.some(c => inBranch(c, b) && !sessionsOn(c.id, selDay));
+    $("clear-btn").hidden = !open.some(c => sessionsOn(c.id, selDay));
+
     if (!list.length) {
-      $("att-list").innerHTML = `<div class="empty">Your coach list is empty.<br>
-        <button class="linkish" type="button" data-goto-tab="coaches">Add all your coaches</button> once, or type a name below.</div>`;
+      $("att-list").innerHTML = `<div class="empty">${esc(branchName(b))} has no coaches yet.<br>
+        <button class="linkish" type="button" data-goto-tab="coaches">Add this branch's coaches</button> once, or type a name below.</div>`;
       return;
     }
     $("att-list").innerHTML = list.map(c => {
@@ -681,21 +827,23 @@
     }).join("");
   }
 
+  // One report row per coach and branch.
   function reportData() {
     const nDays = daysIn(month);
-    const rows = coaches.map(c => {
-      const per = [];
-      let days = 0, sessions = 0, asCoach = 0, asAssistant = 0;
-      for (let d = 1; d <= nDays; d++) {
-        const e = entryOn(c.id, dayIso(month, d));
-        per.push(e);
-        if (e) {
-          days++; sessions += e.coach + e.assistant;
-          asCoach += e.coach; asAssistant += e.assistant;
-        }
-      }
-      return { c, per, days, sessions, asCoach, asAssistant, approval: approvalFor(c.id, dayIso(month, 1)) };
-    }).filter(r => r.sessions || r.approval).sort((a, b) => b.sessions - a.sessions || byName(a.c, b.c));
+    const groups = new Map();
+    const m = months.get(month) || new Map();
+    m.forEach((e, key) => {
+      const [coach, day, br] = key.split("|");
+      const g = aKey(coach, br);
+      if (!groups.has(g)) groups.set(g, { coach, branch: br || null, per: Array(nDays).fill(null) });
+      groups.get(g).per[Number(day.slice(8)) - 1] = e;
+    });
+    const rows = [...groups.values()].map(g => {
+      let days = 0, asCoach = 0, asAssistant = 0;
+      g.per.forEach(e => { if (e) { days++; asCoach += e.coach; asAssistant += e.assistant; } });
+      return { ...g, name: coachName(g.coach), days, asCoach, asAssistant, sessions: asCoach + asAssistant,
+               approval: approvalFor(g.coach, dayIso(month, 1), g.branch) };
+    }).sort((a, b) => (scopeBranch() ? 0 : branchOrder(a.branch) - branchOrder(b.branch)) || b.sessions - a.sessions || byName(a, b));
     const sum = k => rows.reduce((s, r) => s + r[k], 0);
     return { nDays, rows, total: sum("sessions"), asCoach: sum("asCoach"), asAssistant: sum("asAssistant") };
   }
@@ -703,33 +851,39 @@
 
   function renderReport() {
     $("report-month-title").textContent = monthLabel(month);
+    const all = !scopeBranch();
+    document.querySelectorAll(".branch-col").forEach(el => { el.hidden = !all; });
     const { nDays, rows, total, asCoach, asAssistant } = reportData();
     const approvedCount = rows.filter(r => r.approval).length;
-    $("print-title").textContent = `BFA coach attendance · ${monthLabel(month)}`;
+    $("print-title").textContent = `BFA coach attendance · ${all ? "All branches" : branchName(scopeBranch())} · ${monthLabel(month)}`;
     $("kpis").innerHTML = `
       <div class="kpi hot"><div class="v">${total}</div><div class="l">Total sessions</div></div>
       <div class="kpi"><div class="v">${asCoach}</div><div class="l">As coach</div></div>
       <div class="kpi"><div class="v">${asAssistant}</div><div class="l">As assistant</div></div>
       <div class="kpi"><div class="v">${approvedCount}<span style="font-size:1rem; color:var(--muted);"> / ${rows.length}</span></div><div class="l">Approved</div></div>`;
-    $("approve-all-btn").hidden = !rows.some(r => !r.approval && r.sessions);
+    $("approve-all-btn").hidden = !rows.some(r => !r.approval && r.branch);
 
     $("report-empty").hidden = rows.length > 0;
     $("register-wrap").hidden = rows.length === 0;
     $("report-body").innerHTML = rows.map(r => {
-      const armed = reopenArmed && reopenArmed.id === r.c.id;
-      const status = r.approval
+      const key = aKey(r.coach, r.branch);
+      const armed = reopenArmed && reopenArmed.key === key;
+      const status = !r.branch
+        ? `<span class="sub">Give this coach a branch first</span>`
+        : r.approval
         ? `<span class="pill ok">Approved</span><span class="sub">${fmtDay(r.approval.approved_at)}</span>
-           <button class="btn btn-ghost btn-sm no-print${armed ? " warn" : ""}" type="button" data-reopen="${r.c.id}" style="margin-left:6px;">${armed ? "Tap again to reopen" : "Reopen"}</button>`
-        : `<button class="btn btn-primary btn-sm no-print" type="button" data-approve="${r.c.id}">Approve</button><span class="print-only">Not approved</span>`;
+           <button class="btn btn-ghost btn-sm no-print${armed ? " warn" : ""}" type="button" data-reopen="${r.coach}" data-branch="${r.branch}" style="margin-left:6px;">${armed ? "Tap again to reopen" : "Reopen"}</button>`
+        : `<button class="btn btn-primary btn-sm no-print" type="button" data-approve="${r.coach}" data-branch="${r.branch}">Approve</button><span class="print-only">Not approved</span>`;
       return `<tr>
-        <td>${esc(r.c.name)}${r.c.archived ? ' <span class="sub">(removed)</span>' : ""}</td>
+        <td>${esc(r.name)}</td>
+        <td class="branch-col"${all ? "" : " hidden"}>${esc(branchName(r.branch))}</td>
         <td class="num">${r.days}</td>
         <td class="num">${r.asCoach || "–"}</td>
         <td class="num">${r.asAssistant || "–"}</td>
         <td class="num"><strong>${r.sessions}</strong></td>
         <td class="status-cell">${status}</td>
       </tr>`;
-    }).join("") + (rows.length ? `<tr class="total"><td>Total</td><td></td><td class="num">${asCoach}</td><td class="num">${asAssistant}</td><td class="num">${total}</td><td></td></tr>` : "");
+    }).join("") + (rows.length ? `<tr class="total"><td>Total</td><td class="branch-col"${all ? "" : " hidden"}></td><td></td><td class="num">${asCoach}</td><td class="num">${asAssistant}</td><td class="num">${total}</td><td></td></tr>` : "");
 
     if (!rows.length) { $("register").innerHTML = ""; return; }
     const heads = [], wk = [];
@@ -739,12 +893,11 @@
       heads.push(`<th class="day${wk[d - 1] ? " wkend" : ""}" data-goto="${toIso(dt)}" title="Open ${dt.toLocaleDateString()}">${d}<small>${dt.toLocaleDateString(undefined, { weekday: "narrow" })}</small></th>`);
     }
     $("register").innerHTML = `<thead><tr><th>Coach</th>${heads.join("")}<th>Total</th></tr></thead><tbody>${
-      rows.map(r => `<tr><td>${esc(r.c.name)}</td>${r.per.map((e, i) => {
+      rows.map(r => `<tr><td>${esc(r.name)}${all ? ` <span class="branch-tag">· ${esc(branchName(r.branch))}</span>` : ""}</td>${r.per.map((e, i) => {
         if (!e) return `<td class="${wk[i] ? "wkend" : ""}"></td>`;
-        const onlyAsst = !e.coach;
         const text = [e.coach ? e.coach : "", e.assistant ? `${e.assistant}<sup>A</sup>` : ""].filter(Boolean).join("+");
         const title = [e.coach ? `${e.coach} as coach` : "", e.assistant ? `${e.assistant} as assistant` : ""].filter(Boolean).join(", ");
-        return `<td class="on${onlyAsst ? " asst" : ""}${wk[i] ? " wkend" : ""}" title="${title}">${text}</td>`;
+        return `<td class="on${e.coach ? "" : " asst"}${wk[i] ? " wkend" : ""}" title="${title}">${text}</td>`;
       }).join("")}<td class="tot">${r.sessions}</td></tr>`).join("")
     }</tbody>`;
   }
@@ -752,18 +905,67 @@
   function renderCoaches() {
     // Don't rebuild the list under someone who is typing a new name.
     if (document.activeElement && document.activeElement.dataset && document.activeElement.dataset.rename) return;
-    const row = c => `<div class="coach-row">
-        <input type="text" value="${esc(c.name)}" data-rename="${c.id}" aria-label="Name">
-        ${c.archived
-          ? `<button class="btn btn-ghost btn-sm" type="button" data-restore="${c.id}">Restore</button>`
-          : `<button class="btn btn-ghost btn-sm" type="button" data-archive="${c.id}">Remove</button>`}
+    const b = scopeBranch();
+    $("branch-coaches").hidden = !b;
+    $("all-coaches").hidden = !!b;
+    $("bulk-branch-wrap").hidden = !!b;
+    $("bulk-title").textContent = b ? `Add coaches to ${branchName(b)}` : "Add coaches";
+    $("bulk-sub").textContent = "Type or paste the names, one per line. A name that already exists in another branch is the same person and gets added here too.";
+    const bulkSel = $("bulk-branch");
+    const prev = bulkSel.value;
+    bulkSel.innerHTML = branches.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join("");
+    if (prev) bulkSel.value = prev;
+
+    if (b) {
+      const row = (c, removed) => `<div class="coach-row">
+          <input type="text" value="${esc(c.name)}" data-rename="${c.id}" aria-label="Name">
+          ${removed
+            ? `<button class="btn btn-ghost btn-sm" type="button" data-join="${c.id}">Restore</button>`
+            : `<button class="btn btn-ghost btn-sm" type="button" data-leave="${c.id}">Remove</button>`}
+        </div>`;
+      const active = coaches.filter(c => inBranch(c, b)).sort(byName);
+      const removed = coaches.filter(c => !inBranch(c, b) && c.removed_from.includes(b)).sort(byName);
+      $("coach-count").textContent = active.length ? `· ${active.length}` : "";
+      $("coach-list-sub").textContent = `Coaches who work at ${branchName(b)}. Edit a name to fix it. Removing a coach here keeps their past sessions.`;
+      $("coach-list").innerHTML = active.length ? active.map(c => row(c, false)).join("") : `<div class="empty">No coaches in ${esc(branchName(b))} yet. Add their names on the left.</div>`;
+      $("archived-wrap").hidden = !removed.length;
+      $("archived-list").innerHTML = removed.map(c => row(c, true)).join("");
+      return;
+    }
+
+    // Admin, all branches: assign each coach to branches.
+    const chips = c => `<div class="chips">${branches.map(x =>
+      `<button type="button" class="chip" data-chip="${c.id}" data-branch="${x.id}" aria-pressed="${inBranch(c, x.id)}">${esc(x.name)}</button>`).join("")}</div>`;
+    const card = (c, extra) => `<div class="all-coach">
+        <div class="top"><input type="text" value="${esc(c.name)}" data-rename="${c.id}" aria-label="Name">${extra || ""}</div>
+        ${chips(c)}
       </div>`;
-    const active = coaches.filter(c => !c.archived).sort(byName);
-    const archived = coaches.filter(c => c.archived).sort(byName);
-    $("coach-count").textContent = active.length ? `· ${active.length}` : "";
-    $("coach-list").innerHTML = active.length ? active.map(row).join("") : `<div class="empty">No coaches yet. Add their names on the left.</div>`;
-    $("archived-wrap").hidden = !archived.length;
-    $("archived-list").innerHTML = archived.map(row).join("");
+    const assigned = coaches.filter(c => c.member_of.length).sort(byName);
+    const unassigned = coaches.filter(c => !c.member_of.length && !c.archived).sort(byName);
+    const hidden = coaches.filter(c => !c.member_of.length && c.archived).sort(byName);
+    $("all-count").textContent = assigned.length ? `· ${assigned.length}` : "";
+    $("unassigned-note").hidden = !unassigned.length;
+    $("unassigned-note").textContent = `${unassigned.length} ${unassigned.length === 1 ? "coach needs" : "coaches need"} a branch. Tap the branch they work at; their past sessions move to the first branch you choose.`;
+    $("unassigned-list").innerHTML = unassigned.map(c => card(c, `<button class="btn btn-ghost btn-sm" type="button" data-hide="${c.id}">Hide</button>`)).join("");
+    $("all-list").innerHTML = assigned.length ? assigned.map(c => card(c)).join("") : (unassigned.length ? "" : `<div class="empty">No coaches yet.</div>`);
+    $("hidden-wrap").hidden = !hidden.length;
+    $("hidden-list").innerHTML = hidden.map(c => card(c, `<button class="btn btn-ghost btn-sm" type="button" data-unhide="${c.id}">Show</button>`)).join("");
+  }
+
+  function renderBranches() {
+    if (!isAdmin()) return;
+    if (document.activeElement && document.activeElement.closest && document.activeElement.closest("#branch-list")) return;
+    $("branch-list").innerHTML = branches.map(b => `<div class="branch-row">
+        <div class="nm">
+          <label class="cap" for="bn-${b.id}">Name</label>
+          <input type="text" id="bn-${b.id}" value="${esc(b.name)}" data-rename-branch="${b.id}">
+        </div>
+        <div>
+          <label class="cap" for="bp-${b.id}">${b.has_pin ? "PIN set · new PIN" : "No PIN yet · set PIN"}</label>
+          <input type="password" id="bp-${b.id}" inputmode="numeric" maxlength="8" autocomplete="new-password" class="digits" placeholder="4–8 digits">
+        </div>
+        <button class="btn ${b.has_pin ? "btn-ghost" : "btn-primary"}" type="button" data-set-pin="${b.id}">Save PIN</button>
+      </div>`).join("");
   }
 
   // ---------- navigation ----------
@@ -774,6 +976,12 @@
   document.querySelector(".tabs").addEventListener("click", e => {
     const b = e.target.closest("[data-tab]");
     if (b) showTab(b.dataset.tab);
+  });
+
+  $("scope-select").addEventListener("change", async e => {
+    adminScope = e.target.value;
+    save(SCOPE_KEY, adminScope);
+    try { await reloadScope(); } catch (err) { handleError(err); }
   });
 
   async function goToMonth(ym, day) {
@@ -802,24 +1010,54 @@
     $("clear-btn").classList.remove("warn");
   }
 
+  async function setMembership(coachId, branch, member) {
+    const c = coachById(coachId);
+    if (!c) return;
+    const hadNone = !c.member_of.length;
+    const snapshot = { member_of: [...c.member_of], removed_from: [...c.removed_from], archived: c.archived };
+    if (member) { if (!c.member_of.includes(branch)) c.member_of.push(branch); c.removed_from = c.removed_from.filter(x => x !== branch); c.archived = false; }
+    else { c.member_of = c.member_of.filter(x => x !== branch); if (!c.removed_from.includes(branch)) c.removed_from.push(branch); }
+    render();
+    busy++;
+    try {
+      await withPin("set_coach_branch", { coach: coachId, in_branch: branch, is_member: member });
+      if (member && hadNone) { months.clear(); approvals.clear(); await loadMonth(month); render(); }
+      toast(member ? `${c.name} added to ${branchName(branch)}.` : `${c.name} removed from ${branchName(branch)}. Past sessions are kept.`);
+    } catch (e) { Object.assign(c, snapshot); render(); handleError(e); }
+    finally { busy--; }
+  }
+
+  async function setHidden(coachId, hide) {
+    const c = coachById(coachId);
+    if (!c) return;
+    c.archived = hide; render();
+    try { await withPin("set_coach_archived", { coach: coachId, is_archived: hide }); }
+    catch (e) { c.archived = !hide; render(); handleError(e); }
+  }
+
   document.addEventListener("click", async e => {
-    const t = e.target.closest("[data-day],[data-toggle],[data-step],[data-approve],[data-reopen],[data-goto],[data-goto-tab],[data-month-step],[data-archive],[data-restore]");
+    const t = e.target.closest("[data-day],[data-toggle],[data-step],[data-approve],[data-reopen],[data-goto],[data-goto-tab],[data-month-step],[data-join],[data-leave],[data-chip],[data-hide],[data-unhide],[data-set-pin]");
     if (!t) return;
     const ds = t.dataset;
     if (ds.day) selectDay(ds.day);
     else if (ds.toggle) sessionsOn(ds.toggle, selDay) ? clearPerson(ds.toggle, selDay) : setRole(ds.toggle, selDay, lastRole(ds.toggle), 1);
     else if (ds.step) setRole(ds.step, selDay, ds.role, roleCount(ds.step, selDay, ds.role) + Number(ds.d));
-    else if (ds.approve) approve(ds.approve);
-    else if (ds.reopen) reopen(ds.reopen);
+    else if (ds.approve) approve(ds.approve, ds.branch);
+    else if (ds.reopen) reopen(ds.reopen, ds.branch);
     else if (ds.monthStep) goToMonth(addMonths(month, Number(ds.monthStep)));
     else if (ds.goto) { showTab("calendar"); selectDay(ds.goto); }
     else if (ds.gotoTab) { showTab(ds.gotoTab); $("bulk-names").focus(); }
-    else if (ds.archive || ds.restore) setArchived(ds.archive || ds.restore, !!ds.archive);
+    else if (ds.join) setMembership(ds.join, scopeBranch(), true);
+    else if (ds.leave) setMembership(ds.leave, scopeBranch(), false);
+    else if (ds.chip) setMembership(ds.chip, ds.branch, ds.branch && !inBranch(coachById(ds.chip), ds.branch));
+    else if (ds.hide) setHidden(ds.hide, true);
+    else if (ds.unhide) setHidden(ds.unhide, false);
+    else if (ds.setPin) setBranchPin(ds.setPin);
   });
 
   $("all-btn").addEventListener("click", async () => {
-    const day = selDay;
-    const todo = coaches.filter(c => !c.archived && !sessionsOn(c.id, day) && !approvalFor(c.id, day));
+    const day = selDay, b = scopeBranch();
+    const todo = coaches.filter(c => inBranch(c, b) && !sessionsOn(c.id, day) && !approvalFor(c.id, day));
     await Promise.all(todo.map(c => setRole(c.id, day, lastRole(c.id), 1, true)));
     render();
   });
@@ -833,23 +1071,27 @@
     }
     resetClear();
     const day = selDay;
-    await Promise.all(presentOn(day).filter(c => !approvalFor(c.id, day)).map(c => clearPerson(c.id, day, true)));
+    const todo = coaches.filter(c => sessionsOn(c.id, day) && !approvalFor(c.id, day));
+    await Promise.all(todo.map(c => clearPerson(c.id, day, true)));
     render();
   });
 
   $("quick-form").addEventListener("submit", async e => {
     e.preventDefault();
+    const b = scopeBranch();
     const name = cleanName($("quick-name").value);
-    if (!name) return;
+    if (!name || !b) return;
     $("quick-name").value = "";
     let c = coaches.find(x => x.name.toLowerCase() === name.toLowerCase());
-    try { if (!c || c.archived) c = await addCoach(name); } catch (err) { handleError(err); return; }
+    try { if (!c || !inBranch(c, b)) c = await addCoachTo(b, name); } catch (err) { handleError(err); return; }
     if (sessionsOn(c.id, selDay)) { toast(`${c.name} is already ticked for this day.`); render(); return; }
     await setRole(c.id, selDay, lastRole(c.id), 1);
   });
 
   $("bulk-form").addEventListener("submit", async e => {
     e.preventDefault();
+    const b = scopeBranch() || $("bulk-branch").value;
+    if (!b) { toast("Choose a branch first."); return; }
     const seen = new Set();
     const names = $("bulk-names").value.split(/[\n,;]+/).map(cleanName).filter(n => {
       const k = n.toLowerCase();
@@ -857,32 +1099,36 @@
       seen.add(k);
       return true;
     });
-    const fresh = names.filter(n => !coaches.some(c => !c.archived && c.name.toLowerCase() === n.toLowerCase()));
+    const fresh = names.filter(n => !coaches.some(c => inBranch(c, b) && c.name.toLowerCase() === n.toLowerCase()));
     if (!names.length) { toast("Type at least one name."); return; }
-    if (!fresh.length) { toast("Everyone you typed is already on the list."); return; }
+    if (!fresh.length) { toast(`Everyone you typed is already in ${branchName(b)}.`); return; }
     let added = 0;
-    for (const n of fresh) {
-      try { await addCoach(n); added++; } catch (err) { handleError(err); break; }
-    }
+    busy++;
+    try {
+      for (const n of fresh) {
+        try { await addCoachTo(b, n); added++; } catch (err) { handleError(err); break; }
+      }
+    } finally { busy--; }
     $("bulk-names").value = "";
+    months.clear(); approvals.clear();
+    try { await loadMonth(month); } catch (_) {}
     render();
     const skipped = names.length - fresh.length;
-    toast(`Added ${added} coach${added === 1 ? "" : "es"}` + (skipped ? `. ${skipped} already on the list.` : "."));
+    toast(`Added ${added} ${added === 1 ? "coach" : "coaches"} to ${branchName(b)}` + (skipped ? `. ${skipped} already there.` : "."));
   });
 
-  async function setArchived(id, archived) {
-    const c = coachById(id);
-    if (!c) return;
-    c.archived = archived;
-    render();
-    try {
-      await withPin("set_coach_archived", { coach: id, is_archived: archived });
-      toast(archived ? `${c.name} removed from the list. Past attendance is kept.` : `${c.name} is back on the list.`);
-    } catch (e) { c.archived = !archived; render(); handleError(e); }
-  }
-
   document.addEventListener("change", async e => {
-    const id = e.target.dataset && e.target.dataset.rename;
+    const ds = e.target.dataset || {};
+    if (ds.renameBranch) {
+      const b = branches.find(x => x.id === ds.renameBranch);
+      const name = cleanName(e.target.value);
+      if (!b || !name || name === b.name) { e.target.value = b ? b.name : ""; return; }
+      const old = b.name; b.name = name;
+      try { await withPin("rename_branch", { branch: b.id, new_name: name }); toast("Branch renamed."); renderScope(); }
+      catch (err) { b.name = old; e.target.value = old; handleError(err); }
+      return;
+    }
+    const id = ds.rename;
     if (!id) return;
     const c = coachById(id);
     const name = cleanName(e.target.value);
@@ -894,31 +1140,59 @@
     }
     const old = c.name;
     c.name = name;
-    render();
-    try { await withPin("rename_coach", { coach: id, new_name: name }); toast("Name saved."); }
-    catch (err) { c.name = old; render(); handleError(err); }
+    try { await withPin("rename_coach", { coach: id, new_name: name }); toast("Name saved."); render(); }
+    catch (err) { c.name = old; e.target.value = old; handleError(err); }
+  });
+
+  async function setBranchPin(branchId) {
+    const input = $("bp-" + branchId);
+    const v = (input.value || "").trim();
+    if (!/^\d{4,8}$/.test(v)) { toast("The PIN must be 4 to 8 digits."); input.focus(); return; }
+    try {
+      await withPin("set_branch_pin", { branch: branchId, new_pin: v });
+      const b = branches.find(x => x.id === branchId);
+      if (b) b.has_pin = true;
+      input.value = "";
+      document.activeElement && document.activeElement.blur();
+      renderBranches();
+      toast(`PIN saved for ${branchName(branchId)}. Share it with that branch's admin.`);
+    } catch (err) { handleError(err); }
+  }
+
+  $("add-branch-form").addEventListener("submit", async e => {
+    e.preventDefault();
+    const name = cleanName($("new-branch").value);
+    if (!name) return;
+    try {
+      await withPin("add_branch", { branch_name: name });
+      $("new-branch").value = "";
+      await loadBranches();
+      render();
+      toast(`${name} added. Set its PIN below.`);
+    } catch (err) { handleError(err); }
   });
 
   $("csv-btn").addEventListener("click", () => {
     const { nDays, rows, total, asCoach, asAssistant } = reportData();
     if (!rows.length) { toast("Nothing to export for this month."); return; }
     const dates = Array.from({ length: nDays }, (_, i) => dayIso(month, i + 1));
-    const out = [["Name", "Days attended", "Sessions as coach", "Sessions as assistant", "Total sessions", "Approval", ...dates]];
-    rows.forEach(r => out.push([r.c.name, r.days, r.asCoach, r.asAssistant, r.sessions,
+    const out = [["Name", "Branch", "Days attended", "Sessions as coach", "Sessions as assistant", "Total sessions", "Approval", ...dates]];
+    rows.forEach(r => out.push([r.name, branchName(r.branch), r.days, r.asCoach, r.asAssistant, r.sessions,
       r.approval ? "Approved " + new Date(r.approval.approved_at).toLocaleDateString() : "Not approved",
       ...r.per.map(e => e ? [e.coach ? `${e.coach} C` : "", e.assistant ? `${e.assistant} A` : ""].filter(Boolean).join(" + ") : "")]));
-    out.push(["Total", "", asCoach, asAssistant, total]);
+    out.push(["Total", "", "", asCoach, asAssistant, total]);
     out.push([]);
     out.push(["Day cells: C = as coach, A = as assistant, number = sessions that day"]);
     const csv = "﻿" + out.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+    const scopeLabel = scopeBranch() ? branchName(scopeBranch()).toLowerCase().replace(/[^a-z0-9]+/g, "-") : "all-branches";
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    a.download = `bfa-coach-attendance-${month}.csv`;
+    a.download = `bfa-coach-attendance-${scopeLabel}-${month}.csv`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
   $("print-btn").addEventListener("click", () => window.print());
-  $("approve-all-btn").addEventListener("click", () => approve(null));
+  $("approve-all-btn").addEventListener("click", () => approve(null, scopeBranch()));
 
   $("pin-form").addEventListener("submit", async e => {
     e.preventDefault();
@@ -927,9 +1201,9 @@
     try {
       await withPin("change_pin", { new_pin: v });
       pin = v;
-      if (storedPin()) storePin(v);
+      if (load(PIN_KEY)) save(PIN_KEY, v);
       $("new-pin").value = "";
-      toast("PIN changed. Share the new PIN with your team.");
+      toast("Main admin PIN changed.");
     } catch (err) { handleError(err); }
   });
 
@@ -943,17 +1217,25 @@
   }
   async function enter(p) {
     pin = p;
+    const [who] = await withPin("whoami");
+    me = who;
+    await loadBranches();
+    const saved = load(SCOPE_KEY) || "";
+    adminScope = isAdmin() && branches.some(b => b.id === saved) ? saved : "";
     await Promise.all([loadCoaches(), loadMonth(month)]);
     render();
     $("gate").hidden = true;
     $("app").hidden = false;
-    if (!coaches.length) showTab("coaches");
+    // First visit of a branch with no coaches yet: open the Coaches tab.
+    if (scopeBranch() && !coaches.some(c => inBranch(c, scopeBranch()))) showTab("coaches");
+    else if (isAdmin() && coaches.some(c => !c.member_of.length && !c.archived)) showTab("coaches");
+    else showTab("calendar");
   }
   function lock(msg) {
-    pin = null;
-    storePin(null);
-    months.clear();
-    coaches = [];
+    pin = null; me = null;
+    save(PIN_KEY, null);
+    months.clear(); approvals.clear();
+    coaches = []; branches = [];
     showGate("login");
     $("login-err").textContent = msg || "";
     $("login-pin").value = "";
@@ -967,7 +1249,7 @@
     if (a !== b) { $("setup-err").textContent = "The two PINs don't match."; return; }
     try {
       await rpc("setup_pin", { new_pin: a });
-      storePin(a);
+      save(PIN_KEY, a);
       await enter(a);
     } catch (err) { $("setup-err").textContent = err.message; }
   });
@@ -978,22 +1260,24 @@
     if (!p) return;
     try {
       await rpc("check_pin", { p });
-      if ($("remember").checked) storePin(p);
+      if ($("remember").checked) save(PIN_KEY, p);
       $("login-err").textContent = "";
       await enter(p);
     } catch (err) { $("login-err").textContent = err.badPin ? "Wrong PIN. Try again." : "Couldn't connect. Check your internet and try again."; }
   });
 
-  document.querySelectorAll(".pin, #new-pin").forEach(i => i.addEventListener("input", () => { i.value = i.value.replace(/\D/g, "").slice(0, 8); }));
+  document.addEventListener("input", e => {
+    if (e.target.matches(".pin, #new-pin, .digits")) e.target.value = e.target.value.replace(/\D/g, "").slice(0, 8);
+  });
 
   async function boot() {
     showGate("loading");
     try {
       if (!(await rpc("pin_is_set"))) { showGate("setup"); return; }
-      const saved = storedPin();
+      const saved = load(PIN_KEY);
       if (saved) {
         try { await rpc("check_pin", { p: saved }); await enter(saved); return; }
-        catch (e) { if (!e.badPin) throw e; storePin(null); }
+        catch (e) { if (!e.badPin) throw e; save(PIN_KEY, null); }
       }
       showGate("login");
     } catch (e) {
