@@ -220,6 +220,7 @@
   /* ---------- Coaches ---------- */
   .coaches-layout { display: grid; gap: 16px; }
   @media (min-width: 880px) { .coaches-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
+  @media (min-width: 880px) { .coaches-layout.wide { grid-template-columns: minmax(0, 1fr); } .coaches-layout.wide #all-coaches { order: -1; } .coaches-layout.wide textarea { min-height: 90px; } }
   .coach-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); }
   .coach-row:first-child { border-top: 0; }
   .coach-row input { flex: 1 1 auto; }
@@ -277,6 +278,82 @@
   .branch-row:first-child { border-top: 0; }
   @media (max-width: 560px) { .branch-row { grid-template-columns: 1fr auto; } .branch-row .nm { grid-column: 1 / -1; } }
   select.inline { padding: 9px 10px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--surface-alt); }
+
+  /* ---------- Overview (main admin start screen) ---------- */
+  .ov-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .ov-card { border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: var(--surface-alt); display: grid; gap: 10px; align-content: start; }
+  .ov-card h3 { font-size: 1rem; color: var(--navy); }
+  .ov-card .meta { color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
+  .ov-nums { display: flex; gap: 18px; }
+  .ov-nums div { display: grid; }
+  .ov-nums b { font-family: var(--font-head); font-size: 1.6rem; line-height: 1.1; color: var(--navy); font-variant-numeric: tabular-nums; }
+  .ov-nums b.asst-num { color: var(--red); }
+  .ov-nums span { font-family: var(--font-head); font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .ov-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .ov-warn { color: var(--red); font-size: 0.8rem; }
+  .ov-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+
+  /* ---------- Attendance table (one branch, one day) ---------- */
+  .day-tools { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+  .day-tools input { flex: 1 1 180px; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--surface-alt); min-width: 0; }
+  .present-count { font-family: var(--font-head); font-size: 0.85rem; letter-spacing: 0.04em; color: var(--navy); white-space: nowrap; }
+  .att-grid { display: grid; }
+  .att-head, .att-line { display: grid; grid-template-columns: 34px minmax(0, 1fr) 108px 108px; gap: 8px; align-items: center; }
+  .att-head { padding: 0 2px 6px; border-bottom: 1.5px solid var(--border); }
+  .att-head span { font-family: var(--font-head); font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .att-head span:nth-child(n+3) { text-align: center; }
+  .att-line { padding: 7px 2px; border-bottom: 1px solid var(--border); }
+  .att-line .who { min-width: 0; overflow-wrap: anywhere; cursor: pointer; font-weight: 600; }
+  .att-line.off .who { color: var(--muted); font-weight: 400; }
+  .att-line.locked .who { cursor: default; }
+  .att-line .who small { display: block; font-weight: 400; }
+  .att-line .cell { display: flex; justify-content: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .mini { display: inline-flex; align-items: center; gap: 3px; border: 1.5px solid var(--border); border-radius: 9px; padding: 2px; }
+  .mini.has.coach { border-color: var(--navy); }
+  .mini.has.assistant { border-color: var(--red); }
+  .mini button { width: 26px; height: 26px; border-radius: 7px; border: 0; background: transparent; cursor: pointer; font-weight: 700; color: var(--ink); }
+  .mini button:hover { background: var(--hover); }
+  .mini button:disabled { opacity: 0.3; cursor: default; background: transparent; }
+  .mini b { min-width: 18px; text-align: center; font-variant-numeric: tabular-nums; }
+  .mini.zero b { color: var(--muted); font-weight: 600; }
+  .mini.has.assistant b { color: var(--red); }
+  .att-sep { font-family: var(--font-head); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--good); padding: 14px 2px 6px; border-bottom: 1.5px solid var(--border); }
+  @media (max-width: 520px) {
+    .att-head, .att-line { grid-template-columns: 28px minmax(0, 1fr) 78px 78px; gap: 5px; }
+    .att-line .tick { width: 28px; height: 28px; }
+    .mini { gap: 1px; padding: 1px; }
+    .mini button { width: 24px; height: 26px; }
+    .mini b { min-width: 16px; }
+  }
+
+  /* ---------- Report grouped by branch ---------- */
+  .seg-toggle { display: inline-flex; border: 1.5px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .seg-toggle button { border: 0; background: transparent; padding: 6px 12px; cursor: pointer; font-family: var(--font-head); font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+  .seg-toggle button + button { border-left: 1.5px solid var(--border); }
+  .seg-toggle button[aria-pressed="true"] { background: var(--pill-bg); color: var(--pill-fg); }
+  .btiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 8px; }
+  .btile { text-align: left; border: 1px solid var(--border); background: var(--surface-alt); border-radius: 12px; padding: 12px; cursor: pointer; display: grid; gap: 4px; }
+  .btile:hover { border-color: var(--navy); }
+  .btile .bn { font-family: var(--font-head); text-transform: uppercase; letter-spacing: 0.04em; color: var(--navy); font-weight: 600; }
+  .btile .bv { font-size: 0.9rem; }
+  .btile .bs { color: var(--muted); font-size: 0.78rem; }
+  .bgroup { margin-top: 22px; scroll-margin-top: 12px; }
+  .bgroup-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; border-bottom: 2px solid var(--navy); padding-bottom: 6px; }
+  .bgroup-head h3 { font-size: 1rem; color: var(--navy); }
+  .bgroup table td, .bgroup table th { padding: 8px 7px; }
+  table.register tr.reg-group td { text-align: left; font-family: var(--font-head); letter-spacing: 0.05em; text-transform: uppercase; color: var(--navy); background: var(--surface-alt); padding: 6px 4px; }
+  @media print { .bgroup { break-inside: avoid; } }
+
+  /* ---------- Coach table (main admin) ---------- */
+  .list-tools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .list-tools input { flex: 1 1 180px; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--surface-alt); min-width: 0; }
+  table.ctable th, table.ctable td { padding: 6px 6px; vertical-align: middle; }
+  table.ctable th.bcol { text-align: center; font-size: 0.66rem; line-height: 1.2; min-width: 64px; white-space: normal; }
+  table.ctable td.bcol { text-align: center; }
+  table.ctable td.bcol input { width: 20px; height: 20px; accent-color: #1b2452; cursor: pointer; }
+  table.ctable td:first-child, table.ctable th:first-child { position: sticky; left: 0; background: var(--surface); z-index: 1; min-width: 170px; }
+  table.ctable td:first-child input { width: 100%; padding: 7px 10px; }
+  table.ctable tr.needs td:first-child { box-shadow: inset 3px 0 0 var(--red); }
 </style>
 </head>
 <body>
@@ -328,6 +405,7 @@
         <span class="fixed" id="scope-fixed" hidden></span>
       </div>
       <nav class="tabs" role="tablist">
+        <button role="tab" data-tab="overview" aria-selected="false" id="overview-tab" hidden>Overview</button>
         <button role="tab" data-tab="calendar" aria-selected="true">Calendar</button>
         <button role="tab" data-tab="report" aria-selected="false"><span class="long">Monthly </span>report</button>
         <button role="tab" data-tab="coaches" aria-selected="false">Coaches</button>
@@ -337,6 +415,24 @@
   </header>
 
   <main>
+    <!-- OVERVIEW (main admin start screen) -->
+    <section data-view="overview" hidden>
+      <div class="panel">
+        <div class="panel-head">
+          <div class="month-nav">
+            <button class="icon-btn" data-month-step="-1" type="button" aria-label="Previous month">‹</button>
+            <h2 id="ov-title"></h2>
+            <button class="icon-btn" data-month-step="1" type="button" aria-label="Next month">›</button>
+          </div>
+        </div>
+        <div class="note warn" id="ov-unassigned" hidden></div>
+        <div class="ov-grid" id="ov-grid"><div class="empty">Loading…</div></div>
+        <div class="ov-actions">
+          <button class="btn btn-ghost btn-sm" type="button" data-open-report="all">All branches report</button>
+        </div>
+      </div>
+    </section>
+
     <!-- CALENDAR -->
     <section data-view="calendar">
       <div class="cal-layout">
@@ -368,6 +464,10 @@
             </div>
           </div>
           <div class="note" id="day-note" hidden>Showing every branch. Choose a branch at the top to add or change sessions.</div>
+          <div class="day-tools" id="day-tools" hidden>
+            <input type="search" id="day-search" placeholder="Search a name…" aria-label="Search coaches" autocomplete="off">
+            <span class="present-count" id="present-count"></span>
+          </div>
           <div class="att-list" id="att-list"></div>
           <form class="quick-add" id="quick-form" autocomplete="off">
             <input type="text" id="quick-name" placeholder="Add another coach to this day" aria-label="Coach name">
@@ -394,7 +494,14 @@
         </div>
         <h2 class="print-title" id="print-title"></h2>
         <div class="kpis" id="kpis"></div>
-        <div class="scroll">
+        <div class="no-print" id="view-toggle-wrap" style="margin-bottom:12px;" hidden>
+          <div class="seg-toggle" role="group" aria-label="Report layout">
+            <button type="button" data-view-mode="grouped" aria-pressed="true">By branch</button>
+            <button type="button" data-view-mode="table" aria-pressed="false">One table</button>
+          </div>
+        </div>
+        <div id="report-groups" hidden></div>
+        <div class="scroll" id="report-table-wrap">
           <table id="report-table">
             <thead id="report-head"></thead>
             <tbody id="report-body"></tbody>
@@ -411,7 +518,7 @@
 
     <!-- COACHES -->
     <section data-view="coaches" hidden>
-      <div class="coaches-layout">
+      <div class="coaches-layout" id="coaches-layout">
         <div class="panel">
           <h2 id="bulk-title">Add coaches</h2>
           <p class="sub" id="bulk-sub">Type or paste the names, one per line. Names already on the list are skipped.</p>
@@ -445,16 +552,15 @@
           <div class="panel-head" style="margin-bottom:6px;">
             <div>
               <h2>All coaches <span id="all-count" style="color:var(--red);"></span></h2>
-              <p class="sub">Tap a branch to add or remove the coach there. Edit a name to fix it.</p>
+              <p class="sub">Tick the branches each coach works at. Edit a name to fix it.</p>
             </div>
           </div>
           <div class="note warn" id="unassigned-note" hidden></div>
-          <div id="unassigned-list"></div>
-          <div id="all-list"></div>
-          <details id="hidden-wrap">
-            <summary>Hidden coaches (no branch)</summary>
-            <div id="hidden-list" style="margin-top:8px;"></div>
-          </details>
+          <div class="list-tools">
+            <input type="search" id="coach-search" placeholder="Search a name…" aria-label="Search coaches" autocomplete="off">
+            <select class="inline" id="coach-filter" aria-label="Show"></select>
+          </div>
+          <div class="scroll"><table class="ctable" id="coach-table"></table></div>
         </div>
       </div>
     </section>
@@ -512,6 +618,9 @@
   let coaches = [];            // [{id, name, archived, member_of: [branchId], removed_from: [branchId]}]
   const months = new Map();    // "YYYY-MM" -> Map("coach|day|branch" -> {coach, assistant} session counts)
   const approvals = new Map(); // "YYYY-MM" -> Map("coach|branch" -> approval row)
+  let overview = null;         // main admin: every branch for one month {ym, rows, appr, coaches}
+  let overviewLoading = false;
+  let reportView = load("bfaReportView") || "grouped";
   let selDay = todayIso();
   let month = selDay.slice(0, 7);
 
@@ -633,11 +742,22 @@
     toast(`${coachName(coachId)}'s ${monthLabel(iso.slice(0, 7))} sessions are approved. Reopen them in the Monthly report to change them.`);
   }
 
+  async function loadOverview() {
+    if (!isAdmin()) return;
+    const ym = month;
+    const [rows, appr, cs] = await Promise.all([
+      withPin("sessions_between", { in_branch: null, from_day: dayIso(ym, 1), to_day: dayIso(ym, daysIn(ym)) }),
+      withPin("approvals_for", { in_branch: null, in_month: dayIso(ym, 1) }),
+      withPin("list_coaches", { in_branch: null })
+    ]);
+    overview = { ym, rows: rows || [], appr: appr || [], coaches: cs || [] };
+  }
+
   let busy = 0; // writes in flight; background refresh waits so it can't undo a change on screen
   async function refresh() {
     if (!pin || busy) return;
     try {
-      await Promise.all([loadBranches(), loadCoaches(), loadMonth(month)]);
+      await Promise.all([loadBranches(), loadCoaches(), loadMonth(month), loadOverview()]);
       if (!busy) render();
     } catch (e) { if (e.badPin) handleError(e); }
   }
@@ -730,6 +850,7 @@
   // ---------- rendering ----------
   function render() {
     renderScope();
+    renderOverview();
     renderCalendar();
     renderDay();
     renderReport();
@@ -749,12 +870,46 @@
       $("scope-fixed").textContent = me.branch_name || "";
     }
     $("branches-tab").hidden = !isAdmin();
+    $("overview-tab").hidden = !isAdmin();
+  }
+
+  // Main admin start screen: how far each branch is for the month.
+  function renderOverview() {
+    if (!isAdmin()) return;
+    $("ov-title").textContent = monthLabel(month);
+    if (!overview || overview.ym !== month) {
+      if (!overviewLoading) {
+        overviewLoading = true;
+        loadOverview().then(renderOverview).catch(handleError).finally(() => { overviewLoading = false; });
+      }
+      return;
+    }
+    const { rows, appr, coaches: cs } = overview;
+    const unassigned = cs.filter(c => !c.member_of.length && !c.archived).length;
+    $("ov-unassigned").hidden = !unassigned;
+    $("ov-unassigned").innerHTML = `${unassigned} ${unassigned === 1 ? "coach needs" : "coaches need"} a branch. <button class="linkish" type="button" data-open-coaches="none">Assign them</button>`;
+    $("ov-grid").innerHTML = branches.map(b => {
+      const mine = rows.filter(r => r.branch_id === b.id);
+      const asCoach = mine.filter(r => r.role === "coach").reduce((s, r) => s + r.sessions, 0);
+      const asAsst = mine.filter(r => r.role === "assistant").reduce((s, r) => s + r.sessions, 0);
+      const people = new Set(mine.map(r => r.coach_id));
+      const approved = appr.filter(a => a.branch_id === b.id && people.has(a.coach_id)).length;
+      const members = cs.filter(c => c.member_of.includes(b.id)).length;
+      const status = !people.size ? `<span class="pill wait">Nothing entered yet</span>`
+        : approved === people.size ? `<span class="pill ok">All approved</span>`
+        : `<span class="pill wait">${approved} of ${people.size} approved</span>`;
+      return `<div class="ov-card">
+        <div><h3>${esc(b.name)}</h3><div class="meta">${members} ${members === 1 ? "coach" : "coaches"}${b.has_pin ? "" : ` · <span class="ov-warn">no PIN yet</span>`}</div></div>
+        <div class="ov-nums"><div><b>${asCoach}</b><span>Coach</span></div><div><b class="asst-num">${asAsst}</b><span>Assistant</span></div></div>
+        <div class="ov-foot">${status}<button class="btn btn-primary btn-sm" type="button" data-open-branch="${b.id}">Open</button></div>
+      </div>`;
+    }).join("");
   }
 
   function renderCalendar() {
     $("cal-title").textContent = monthLabel(month);
     $("cal-legend").textContent = scopeBranch()
-      ? "Tap a day and tick who attended. Then set how many sessions each person did as coach and as assistant (someone can do both on the same day). The number on each day is how many people came."
+      ? "Tap a day, tick who came, then use the Coach and Assistant counters for their sessions. The number on each day is how many people came."
       : "Showing every branch. The number on each day is how many people came across all branches. Choose a branch at the top to take attendance.";
     const first = parseIso(month + "-01");
     const offset = (first.getDay() + 6) % 7; // weeks start on Monday
@@ -779,6 +934,7 @@
     $("day-sub").textContent = d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const b = scopeBranch();
     $("day-note").hidden = !!b;
+    if (!b) $("day-tools").hidden = true;
     $("quick-form").hidden = !b;
     resetClear();
 
@@ -796,44 +952,51 @@
     }
 
     // Everyone on this branch's list, plus anyone removed from it who was marked on this day.
-    const list = coaches.filter(c => inBranch(c, b) || sessionsOn(c.id, selDay)).sort(byName);
-    const open = list.filter(c => !approvalFor(c.id, selDay));
+    const everyone = coaches.filter(c => inBranch(c, b) || sessionsOn(c.id, selDay));
+    const open = everyone.filter(c => !approvalFor(c.id, selDay));
     $("all-btn").hidden = !open.some(c => inBranch(c, b) && !sessionsOn(c.id, selDay));
     $("clear-btn").hidden = !open.some(c => sessionsOn(c.id, selDay));
+    $("day-tools").hidden = everyone.length < 6;
+    const present = everyone.filter(c => sessionsOn(c.id, selDay)).length;
+    $("present-count").textContent = `${present} of ${everyone.length} present`;
 
-    if (!list.length) {
+    if (!everyone.length) {
       $("att-list").innerHTML = `<div class="empty">${esc(branchName(b))} has no coaches yet.<br>
         <button class="linkish" type="button" data-goto-tab="coaches">Add this branch's coaches</button> once, or type a name below.</div>`;
       return;
     }
-    $("att-list").innerHTML = list.map(c => {
+    const q = ($("day-search").value || "").trim().toLowerCase();
+    const shown = everyone.filter(c => !q || c.name.toLowerCase().includes(q));
+    // Not approved yet first (they still need attention), approved and locked at the bottom.
+    const pending = shown.filter(c => !approvalFor(c.id, selDay)).sort(byName);
+    const done = shown.filter(c => approvalFor(c.id, selDay)).sort(byName);
+
+    const stepper = (c, role, label) => {
+      const k = roleCount(c.id, selDay, role);
+      return `<span class="mini ${role}${k ? " has" : " zero"}">
+        <button type="button" data-step="${c.id}" data-role="${role}" data-d="-1" ${k ? "" : "disabled"} aria-label="One ${label} session fewer for ${esc(c.name)}">−</button>
+        <b>${k}</b>
+        <button type="button" data-step="${c.id}" data-role="${role}" data-d="1" aria-label="One more ${label} session for ${esc(c.name)}">+</button>
+      </span>`;
+    };
+    const line = c => {
       const n = sessionsOn(c.id, selDay);
       const locked = !!approvalFor(c.id, selDay);
-      const roleBox = (role, label) => {
-        const k = roleCount(c.id, selDay, role);
-        return `<span class="rc${role === "assistant" ? " asst" : ""}${k ? " has" : " zero"}">
-          <span class="rl">${label}</span>
-          <span class="counter">
-            <button type="button" data-step="${c.id}" data-role="${role}" data-d="-1" ${k ? "" : "disabled"} aria-label="One ${label.toLowerCase()} session fewer for ${esc(c.name)}">−</button>
-            <span class="n">${k}</span>
-            <button type="button" data-step="${c.id}" data-role="${role}" data-d="1" aria-label="One more ${label.toLowerCase()} session for ${esc(c.name)}">+</button>
-          </span>
-        </span>`;
-      };
-      const pills = () => ["coach", "assistant"].map(role => {
-        const k = roleCount(c.id, selDay, role);
-        return k ? `<span class="pill role${role === "assistant" ? " asst" : ""}">${k} as ${role}</span>` : "";
-      }).join("");
-      const controls = !n ? (locked ? `<div class="att-controls"><span class="pill ok">Approved</span></div>` : "")
-        : locked
-        ? `<div class="att-controls">${pills()}<span class="pill ok">Approved</span></div>`
-        : `<div class="att-controls roles">${roleBox("coach", "Coach")}${roleBox("assistant", "Assistant")}</div>`;
-      return `<div class="att-row${n ? "" : " off"}${locked ? " locked" : ""}">
+      const cell = (role, label) => !n ? `<span class="cell"></span>`
+        : locked ? `<span class="cell${role === "assistant" ? " asst-num" : ""}">${roleCount(c.id, selDay, role) || "–"}</span>`
+        : `<span class="cell">${stepper(c, role, label)}</span>`;
+      return `<div class="att-line${n ? "" : " off"}${locked ? " locked" : ""}">
         <button class="tick" type="button" ${locked ? "disabled" : `data-toggle="${c.id}"`} aria-pressed="${!!n}" aria-label="${esc(c.name)} attended${locked ? " (approved, locked)" : ""}">${n ? "✓" : ""}</button>
-        <span class="att-name" ${locked ? "" : `data-toggle="${c.id}"`}>${esc(c.name)}</span>
-        ${controls}
+        <span class="who" ${locked ? "" : `data-toggle="${c.id}"`}>${esc(c.name)}${inBranch(c, b) ? "" : `<small class="sub">removed from ${esc(branchName(b))}</small>`}</span>
+        ${cell("coach", "coach")}${cell("assistant", "assistant")}
       </div>`;
-    }).join("");
+    };
+    $("att-list").innerHTML = `<div class="att-grid">
+        <div class="att-head"><span></span><span>Name</span><span>Coach</span><span>Assistant</span></div>
+        ${pending.map(line).join("")}
+        ${done.length ? `<div class="att-sep">Approved · locked</div>${done.map(line).join("")}` : ""}
+        ${shown.length ? "" : `<div class="empty">No name matches “${esc(q)}”.</div>`}
+      </div>`;
   }
 
   // One report row per coach and branch.
@@ -889,11 +1052,59 @@
     $("approve-all-btn").hidden = !rows.some(r => !r.approval && r.branch);
     $("report-empty").hidden = rows.length > 0;
     $("register-wrap").hidden = rows.length === 0;
+    const grouped = all && reportView === "grouped";
+    $("view-toggle-wrap").hidden = !(all && rows.length);
+    document.querySelectorAll("[data-view-mode]").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.viewMode === reportView)));
+    $("report-groups").hidden = !grouped || !rows.length;
+    $("report-table-wrap").hidden = grouped;
     $("report-table").classList.toggle("pivot", all);
-    $("pivot-legend").hidden = !(all && rows.length);
+    $("pivot-legend").hidden = !(all && !grouped && rows.length);
     const num = (n, asst) => n ? `<span${asst ? ' class="asst-num"' : ""}>${n}</span>` : "–";
 
-    if (all) {
+    const statusCell = r => {
+      const armed = reopenArmed && reopenArmed.key === aKey(r.coach, r.branch);
+      if (!r.branch) return `<span class="sub">Give this coach a branch first</span>`;
+      return r.approval
+        ? `<span class="pill ok">Approved</span><span class="sub">${fmtDay(r.approval.approved_at)}</span>
+           <button class="btn btn-ghost btn-sm no-print${armed ? " warn" : ""}" type="button" data-reopen="${r.coach}" data-branch="${r.branch}" style="margin-left:6px;">${armed ? "Tap again to reopen" : "Reopen"}</button>`
+        : `<button class="btn btn-primary btn-sm no-print" type="button" data-approve="${r.coach}" data-branch="${r.branch}">Approve</button><span class="print-only">Not approved</span>`;
+    };
+
+    if (grouped && rows.length) {
+      // Tiles per branch, then one section per branch, then each person once across all branches.
+      const { cols, list } = pivotData(rows);
+      const tiles = cols.map(b => {
+        const rs = rows.filter(r => r.branch === b);
+        const c = rs.reduce((s2, r) => s2 + r.asCoach, 0), a = rs.reduce((s2, r) => s2 + r.asAssistant, 0);
+        return `<button type="button" class="btile" data-jump="${b || "none"}">
+          <span class="bn">${esc(branchName(b))}</span>
+          <span class="bv"><b>${c}</b> coach · <b class="asst-num">${a}</b> assistant</span>
+          <span class="bs">${rs.length} ${rs.length === 1 ? "person" : "people"} · ${rs.filter(r => r.approval).length} approved</span>
+        </button>`;
+      }).join("");
+      const sections = cols.map(b => {
+        const rs = rows.filter(r => r.branch === b).sort(byName);
+        const c = rs.reduce((s2, r) => s2 + r.asCoach, 0), a = rs.reduce((s2, r) => s2 + r.asAssistant, 0);
+        return `<section class="bgroup" id="grp-${b || "none"}">
+          <div class="bgroup-head"><h3>${esc(branchName(b))}</h3><span class="sub">${c} coach · ${a} assistant sessions</span></div>
+          <div class="scroll"><table>
+            <thead><tr><th>Name</th><th class="num">Days</th><th class="num">Coach</th><th class="num">Assistant</th><th>Approval</th></tr></thead>
+            <tbody>${rs.map(r => `<tr><td>${esc(r.name)}</td><td class="num">${r.days}</td><td class="num">${num(r.asCoach)}</td><td class="num">${num(r.asAssistant, true)}</td><td class="status-cell">${statusCell(r)}</td></tr>`).join("")}
+              <tr class="total"><td>Total</td><td></td><td class="num">${c}</td><td class="num">${a}</td><td></td></tr></tbody>
+          </table></div>
+        </section>`;
+      }).join("");
+      const together = `<section class="bgroup" id="grp-together">
+          <div class="bgroup-head"><h3>All branches together</h3><span class="sub">each person once · coach and assistant kept separate</span></div>
+          <div class="scroll"><table>
+            <thead><tr><th>Name</th><th>Branches</th><th class="num">Coach</th><th class="num">Assistant</th></tr></thead>
+            <tbody>${list.map(p => `<tr><td>${esc(p.name)}</td><td class="sub" style="margin:0;">${Object.keys(p.by).sort((x, y) => branchOrder(x || null) - branchOrder(y || null)).map(k => esc(branchName(k || null))).join(", ")}</td><td class="num">${num(p.asCoach)}</td><td class="num">${num(p.asAssistant, true)}</td></tr>`).join("")}
+              <tr class="total"><td>Total</td><td></td><td class="num">${asCoach}</td><td class="num">${asAssistant}</td></tr></tbody>
+          </table></div>
+        </section>`;
+      $("report-groups").innerHTML = `<div class="btiles no-print">${tiles}</div>${sections}${together}`;
+      $("report-head").innerHTML = $("report-body").innerHTML = "";
+    } else if (all) {
       // Branch by branch, then the total; coach and assistant sessions are never added together.
       const { cols, list, colTotals } = pivotData(rows);
       $("report-head").innerHTML = rows.length ? `<tr><th rowspan="2">Name</th>${cols.map(b => `<th colspan="2" class="bstart">${esc(branchName(b))}</th>`).join("")}<th colspan="2" class="bstart tcol">Total</th></tr>
@@ -908,12 +1119,7 @@
     } else {
       $("report-head").innerHTML = `<tr><th>Name</th><th class="num">Days</th><th class="num">Coach sessions</th><th class="num">Assistant sessions</th><th>Approval</th></tr>`;
       $("report-body").innerHTML = rows.map(r => {
-        const key = aKey(r.coach, r.branch);
-        const armed = reopenArmed && reopenArmed.key === key;
-        const status = r.approval
-          ? `<span class="pill ok">Approved</span><span class="sub">${fmtDay(r.approval.approved_at)}</span>
-             <button class="btn btn-ghost btn-sm no-print${armed ? " warn" : ""}" type="button" data-reopen="${r.coach}" data-branch="${r.branch}" style="margin-left:6px;">${armed ? "Tap again to reopen" : "Reopen"}</button>`
-          : `<button class="btn btn-primary btn-sm no-print" type="button" data-approve="${r.coach}" data-branch="${r.branch}">Approve</button><span class="print-only">Not approved</span>`;
+        const status = statusCell(r);
         return `<tr>
           <td>${esc(r.name)}</td>
           <td class="num">${r.days}</td>
@@ -931,8 +1137,10 @@
       wk.push(dt.getDay() === 0 || dt.getDay() === 6);
       heads.push(`<th class="day${wk[d - 1] ? " wkend" : ""}" data-goto="${toIso(dt)}" title="Open ${dt.toLocaleDateString()}">${d}<small>${dt.toLocaleDateString(undefined, { weekday: "narrow" })}</small></th>`);
     }
+    const regRows = all ? [...rows].sort((a, b) => branchOrder(a.branch) - branchOrder(b.branch) || byName(a, b)) : rows;
+    let lastBranch;
     $("register").innerHTML = `<thead><tr><th>Coach</th>${heads.join("")}<th>Coach</th><th>Asst.</th></tr></thead><tbody>${
-      rows.map(r => `<tr><td>${esc(r.name)}${all ? ` <span class="branch-tag">· ${esc(branchName(r.branch))}</span>` : ""}</td>${r.per.map((e, i) => {
+      regRows.map(r => `${all && r.branch !== lastBranch ? (lastBranch = r.branch, `<tr class="reg-group"><td colspan="${nDays + 3}">${esc(branchName(r.branch))}</td></tr>`) : ""}<tr><td>${esc(r.name)}</td>${r.per.map((e, i) => {
         if (!e) return `<td class="${wk[i] ? "wkend" : ""}"></td>`;
         const text = [e.coach ? e.coach : "", e.assistant ? `${e.assistant}<sup>A</sup>` : ""].filter(Boolean).join("+");
         const title = [e.coach ? `${e.coach} as coach` : "", e.assistant ? `${e.assistant} as assistant` : ""].filter(Boolean).join(", ");
@@ -947,6 +1155,7 @@
     const b = scopeBranch();
     $("branch-coaches").hidden = !b;
     $("all-coaches").hidden = !!b;
+    $("coaches-layout").classList.toggle("wide", !b);
     $("bulk-branch-wrap").hidden = !!b;
     $("bulk-title").textContent = b ? `Add coaches to ${branchName(b)}` : "Add coaches";
     $("bulk-sub").textContent = "Type or paste the names, one per line. A name that already exists in another branch is the same person and gets added here too.";
@@ -972,23 +1181,35 @@
       return;
     }
 
-    // Admin, all branches: assign each coach to branches.
-    const chips = c => `<div class="chips">${branches.map(x =>
-      `<button type="button" class="chip" data-chip="${c.id}" data-branch="${x.id}" aria-pressed="${inBranch(c, x.id)}">${esc(x.name)}</button>`).join("")}</div>`;
-    const card = (c, extra) => `<div class="all-coach">
-        <div class="top"><input type="text" value="${esc(c.name)}" data-rename="${c.id}" aria-label="Name">${extra || ""}</div>
-        ${chips(c)}
-      </div>`;
-    const assigned = coaches.filter(c => c.member_of.length).sort(byName);
-    const unassigned = coaches.filter(c => !c.member_of.length && !c.archived).sort(byName);
-    const hidden = coaches.filter(c => !c.member_of.length && c.archived).sort(byName);
-    $("all-count").textContent = assigned.length ? `· ${assigned.length}` : "";
+    // Admin, all branches: one line per coach, one tick box per branch.
+    const unassigned = coaches.filter(c => !c.member_of.length && !c.archived);
+    const visible = coaches.filter(c => !c.archived || c.member_of.length);
+    $("all-count").textContent = visible.length ? `· ${visible.length}` : "";
     $("unassigned-note").hidden = !unassigned.length;
-    $("unassigned-note").textContent = `${unassigned.length} ${unassigned.length === 1 ? "coach needs" : "coaches need"} a branch. Tap the branch they work at; their past sessions move to the first branch you choose.`;
-    $("unassigned-list").innerHTML = unassigned.map(c => card(c, `<button class="btn btn-ghost btn-sm" type="button" data-hide="${c.id}">Hide</button>`)).join("");
-    $("all-list").innerHTML = assigned.length ? assigned.map(c => card(c)).join("") : (unassigned.length ? "" : `<div class="empty">No coaches yet.</div>`);
-    $("hidden-wrap").hidden = !hidden.length;
-    $("hidden-list").innerHTML = hidden.map(c => card(c, `<button class="btn btn-ghost btn-sm" type="button" data-unhide="${c.id}">Show</button>`)).join("");
+    $("unassigned-note").innerHTML = `${unassigned.length} ${unassigned.length === 1 ? "coach needs" : "coaches need"} a branch. Tick the branch they work at; their past sessions move to the first branch you tick. <button class="linkish" type="button" data-set-filter="none">Show only them</button>`;
+    const filterSel = $("coach-filter");
+    const prevFilter = filterSel.value || "all";
+    filterSel.innerHTML = `<option value="all">All coaches</option><option value="none">Needs a branch</option>` +
+      branches.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join("") +
+      (coaches.some(c => c.archived && !c.member_of.length) ? `<option value="hidden">Hidden coaches</option>` : "");
+    filterSel.value = [...filterSel.options].some(o => o.value === prevFilter) ? prevFilter : "all";
+    const f = filterSel.value;
+    const q = ($("coach-search").value || "").trim().toLowerCase();
+    const list = coaches.filter(c =>
+        f === "all" ? (!c.archived || c.member_of.length)
+      : f === "none" ? (!c.member_of.length && !c.archived)
+      : f === "hidden" ? (c.archived && !c.member_of.length)
+      : inBranch(c, f))
+      .filter(c => !q || c.name.toLowerCase().includes(q))
+      .sort(byName);
+    $("coach-table").innerHTML = `<thead><tr><th>Name</th>${branches.map(x => `<th class="bcol">${esc(x.name)}</th>`).join("")}<th></th></tr></thead>
+      <tbody>${list.map(c => `<tr class="${!c.member_of.length && !c.archived ? "needs" : ""}">
+        <td><input type="text" value="${esc(c.name)}" data-rename="${c.id}" aria-label="Name"></td>
+        ${branches.map(x => `<td class="bcol"><input type="checkbox" data-member="${c.id}" data-branch="${x.id}" ${inBranch(c, x.id) ? "checked" : ""} aria-label="${esc(c.name)} works at ${esc(x.name)}"></td>`).join("")}
+        <td>${c.member_of.length ? "" : c.archived
+          ? `<button class="btn btn-ghost btn-sm" type="button" data-unhide="${c.id}">Show</button>`
+          : `<button class="btn btn-ghost btn-sm" type="button" data-hide="${c.id}">Hide</button>`}</td>
+      </tr>`).join("") || `<tr><td colspan="${branches.length + 2}" class="empty">No coaches match.</td></tr>`}</tbody>`;
   }
 
   function renderBranches() {
@@ -1014,8 +1235,18 @@
   }
   document.querySelector(".tabs").addEventListener("click", e => {
     const b = e.target.closest("[data-tab]");
-    if (b) showTab(b.dataset.tab);
+    if (!b) return;
+    showTab(b.dataset.tab);
+    if (b.dataset.tab === "overview") loadOverview().then(renderOverview).catch(handleError);
   });
+  // Switch the main admin to a branch (or "" for all branches) and open a tab.
+  async function openScope(branch, tab) {
+    adminScope = branch;
+    save(SCOPE_KEY, adminScope);
+    showTab(tab);
+    window.scrollTo(0, 0);
+    try { await reloadScope(); } catch (err) { handleError(err); }
+  }
 
   $("scope-select").addEventListener("change", async e => {
     adminScope = e.target.value;
@@ -1035,6 +1266,7 @@
   function selectDay(iso) {
     if (iso.slice(0, 7) !== month) { goToMonth(iso.slice(0, 7), iso); return; }
     selDay = iso;
+    $("day-search").value = "";
     renderCalendar();
     renderDay();
     if (window.matchMedia("(max-width: 879px)").matches) $("day-panel").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1075,7 +1307,7 @@
   }
 
   document.addEventListener("click", async e => {
-    const t = e.target.closest("[data-day],[data-toggle],[data-step],[data-approve],[data-reopen],[data-goto],[data-goto-tab],[data-month-step],[data-join],[data-leave],[data-chip],[data-hide],[data-unhide],[data-set-pin]");
+    const t = e.target.closest("[data-day],[data-toggle],[data-step],[data-approve],[data-reopen],[data-goto],[data-goto-tab],[data-month-step],[data-join],[data-leave],[data-hide],[data-unhide],[data-set-pin],[data-open-branch],[data-open-report],[data-open-coaches],[data-view-mode],[data-jump],[data-set-filter]");
     if (!t) return;
     const ds = t.dataset;
     if (ds.day) selectDay(ds.day);
@@ -1088,7 +1320,12 @@
     else if (ds.gotoTab) { showTab(ds.gotoTab); $("bulk-names").focus(); }
     else if (ds.join) setMembership(ds.join, scopeBranch(), true);
     else if (ds.leave) setMembership(ds.leave, scopeBranch(), false);
-    else if (ds.chip) setMembership(ds.chip, ds.branch, ds.branch && !inBranch(coachById(ds.chip), ds.branch));
+    else if (ds.openBranch) openScope(ds.openBranch, "calendar");
+    else if (ds.openReport) openScope("", "report");
+    else if (ds.openCoaches) { await openScope("", "coaches"); $("coach-filter").value = ds.openCoaches; renderCoaches(); }
+    else if (ds.viewMode) { reportView = ds.viewMode; save("bfaReportView", reportView); renderReport(); }
+    else if (ds.jump) { const el = $("grp-" + ds.jump); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }
+    else if (ds.setFilter) { $("coach-filter").value = ds.setFilter; renderCoaches(); }
     else if (ds.hide) setHidden(ds.hide, true);
     else if (ds.unhide) setHidden(ds.unhide, false);
     else if (ds.setPin) setBranchPin(ds.setPin);
@@ -1156,8 +1393,13 @@
     toast(`Added ${added} ${added === 1 ? "coach" : "coaches"} to ${branchName(b)}` + (skipped ? `. ${skipped} already there.` : "."));
   });
 
+  $("day-search").addEventListener("input", renderDay);
+  $("coach-search").addEventListener("input", renderCoaches);
+  $("coach-filter").addEventListener("change", renderCoaches);
+
   document.addEventListener("change", async e => {
     const ds = e.target.dataset || {};
+    if (ds.member) { setMembership(ds.member, ds.branch, e.target.checked); return; }
     if (ds.renameBranch) {
       const b = branches.find(x => x.id === ds.renameBranch);
       const name = cleanName(e.target.value);
@@ -1275,13 +1517,14 @@
     render();
     $("gate").hidden = true;
     $("app").hidden = false;
-    // First visit of a branch with no coaches yet: open the Coaches tab.
-    if (scopeBranch() && !coaches.some(c => inBranch(c, scopeBranch()))) showTab("coaches");
-    else if (isAdmin() && coaches.some(c => !c.member_of.length && !c.archived)) showTab("coaches");
+    // Main admin starts on the Overview; a branch admin starts on today's attendance
+    // (or on Coaches the first time, when the branch has no coaches yet).
+    if (isAdmin()) showTab("overview");
+    else if (!coaches.some(c => inBranch(c, scopeBranch()))) showTab("coaches");
     else showTab("calendar");
   }
   function lock(msg) {
-    pin = null; me = null;
+    pin = null; me = null; overview = null;
     save(PIN_KEY, null);
     months.clear(); approvals.clear();
     coaches = []; branches = [];
