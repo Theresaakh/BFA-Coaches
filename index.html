@@ -443,7 +443,10 @@
               <h2 id="cal-title"></h2>
               <button class="icon-btn" data-month-step="1" type="button" aria-label="Next month">›</button>
             </div>
-            <button class="btn btn-ghost btn-sm" id="today-btn" type="button">Today</button>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn btn-ghost btn-sm" id="today-btn" type="button">Today</button>
+              <button class="btn btn-ghost btn-sm" data-export-excel type="button">Export Excel</button>
+            </div>
           </div>
           <div class="cal-week" aria-hidden="true">
             <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
@@ -488,7 +491,7 @@
           </div>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <button class="btn btn-primary btn-sm" id="approve-all-btn" type="button">Approve all</button>
-            <button class="btn btn-ghost btn-sm" id="csv-btn" type="button">Export CSV</button>
+            <button class="btn btn-ghost btn-sm" data-export-excel type="button">Export Excel</button>
             <button class="btn btn-ghost btn-sm" id="print-btn" type="button">Print</button>
           </div>
         </div>
@@ -1453,35 +1456,161 @@
     } catch (err) { handleError(err); }
   });
 
-  $("csv-btn").addEventListener("click", () => {
-    const { nDays, rows, asCoach, asAssistant } = reportData();
+  // ---------- Excel export ----------
+  // ExcelJS is only downloaded when someone exports, so the app itself stays light.
+  function loadExcelJS() {
+    if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+    return new Promise((resolve, reject) => {
+      const el = document.createElement("script");
+      el.src = "https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js";
+      el.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error("The Excel tool did not load."));
+      el.onerror = () => { el.remove(); reject(new Error("Couldn't load the Excel tool. Check your internet and try again.")); };
+      document.head.appendChild(el);
+    });
+  }
+
+  // One workbook for the month in view: a day-by-day grid of coach sessions, the same for
+  // assistant sessions (the two are never added together), and a summary per person.
+  async function exportExcel() {
+    const { nDays, rows } = reportData();
     if (!rows.length) { toast("Nothing to export for this month."); return; }
-    const dates = Array.from({ length: nDays }, (_, i) => dayIso(month, i + 1));
-    const dayCells = r => r.per.map(e => e ? [e.coach ? `${e.coach} C` : "", e.assistant ? `${e.assistant} A` : ""].filter(Boolean).join(" + ") : "");
-    const status = r => r.approval ? "Approved " + new Date(r.approval.approved_at).toLocaleDateString() : "Not approved";
-    const out = [];
-    if (!scopeBranch()) {
-      // Summary: coach and assistant sessions per branch, then the totals (kept separate).
-      const { cols, list, colTotals } = pivotData(rows);
-      out.push(["Name", ...cols.flatMap(b => [`${branchName(b)} - coach`, `${branchName(b)} - assistant`]), "Total - coach", "Total - assistant"]);
-      list.forEach(p => out.push([p.name, ...cols.flatMap(b => { const r = p.by[b || ""]; return r ? [r.asCoach, r.asAssistant] : [0, 0]; }), p.asCoach, p.asAssistant]));
-      out.push(["Total", ...colTotals.flatMap(t => [t.asCoach, t.asAssistant]), asCoach, asAssistant]);
-      out.push([]);
-      out.push(["Day by day"]);
+    let ExcelJS;
+    try { ExcelJS = await loadExcelJS(); } catch (e) { toast(e.message); return; }
+
+    const all = !scopeBranch();
+    const scopeLabel = all ? "All branches" : branchName(scopeBranch());
+    const people = [...rows].sort((x, y) => branchOrder(x.branch) - branchOrder(y.branch) || byName(x, y));
+    const days = Array.from({ length: nDays }, (_, i) => {
+      const dt = parseIso(dayIso(month, i + 1));
+      return { label: `${i + 1}\n${dt.toLocaleDateString("en-GB", { weekday: "short" })}`, weekend: dt.getDay() === 0 || dt.getDay() === 6 };
+    });
+    const NAVY = "FF1B2452", RED = "FFC8202E", WEEKEND = "FFEEF0F8", TOTAL = "FFE2E5F5", WHITE = "FFFFFFFF";
+    const fill = argb => ({ type: "pattern", pattern: "solid", fgColor: { argb } });
+    const thin = { style: "thin", color: { argb: "FFDFE2EE" } };
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = "BFA Coach Attendance";
+    wb.created = new Date();
+    wb.calcProperties.fullCalcOnLoad = true; // Excel recalculates every total when the file opens
+
+    function titleRow(ws, text, width) {
+      ws.mergeCells(1, 1, 1, width);
+      const c = ws.getCell(1, 1);
+      c.value = text;
+      c.font = { bold: true, size: 14, color: { argb: NAVY } };
+      ws.getRow(1).height = 24;
     }
-    out.push(["Name", "Branch", "Days attended", "Coach sessions", "Assistant sessions", "Approval", ...dates]);
-    rows.forEach(r => out.push([r.name, branchName(r.branch), r.days, r.asCoach, r.asAssistant, status(r), ...dayCells(r)]));
-    out.push(["Total", "", "", asCoach, asAssistant]);
-    out.push([]);
-    out.push(["Day cells: C = as coach, A = as assistant, number = sessions that day"]);
-    const csv = "﻿" + out.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
-    const scopeLabel = scopeBranch() ? branchName(scopeBranch()).toLowerCase().replace(/[^a-z0-9]+/g, "-") : "all-branches";
+    function headerRow(ws, values, color) {
+      const r = ws.getRow(2);
+      r.values = values;
+      r.height = 30;
+      r.eachCell(c => {
+        c.font = { bold: true, color: { argb: WHITE } };
+        c.fill = fill(color);
+        c.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+        c.border = { top: thin, left: thin, bottom: thin, right: thin };
+      });
+      r.getCell(1).alignment = { horizontal: "left", vertical: "middle" };
+    }
+
+    function roleSheet(sheetName, role, color) {
+      const lead = all ? ["Name", "Branch"] : ["Name"];
+      const L = lead.length, width = L + nDays + 1;
+      const ws = wb.addWorksheet(sheetName, { views: [{ state: "frozen", xSplit: L, ySplit: 2 }] });
+      titleRow(ws, `${sheetName} per day · ${scopeLabel} · ${monthLabel(month)}`, width);
+      headerRow(ws, [...lead, ...days.map(d => d.label), "Total"], color);
+      ws.getColumn(1).width = 26;
+      if (all) ws.getColumn(2).width = 18;
+      for (let i = 1; i <= nDays; i++) ws.getColumn(L + i).width = 5.2;
+      ws.getColumn(width).width = 8;
+
+      const key = role === "coach" ? "asCoach" : "asAssistant";
+      const list = people.filter(r => r[key] > 0);
+      if (!list.length) {
+        ws.getCell(3, 1).value = role === "coach" ? "No coach sessions this month." : "No assistant sessions this month.";
+        return;
+      }
+      const first = 3;
+      list.forEach((r, i) => {
+        const rowNo = first + i;
+        const vals = r.per.map(e => (e && e[role]) ? e[role] : null);
+        const row = ws.getRow(rowNo);
+        row.values = [r.name, ...(all ? [branchName(r.branch)] : []), ...vals,
+          { formula: `SUM(${ws.getColumn(L + 1).letter}${rowNo}:${ws.getColumn(L + nDays).letter}${rowNo})`, result: r[key] }];
+      });
+      const last = first + list.length - 1;
+      const totalRow = ws.getRow(last + 1);
+      totalRow.values = ["Total", ...(all ? [""] : []), ...days.map((_, i) => {
+        const col = ws.getColumn(L + 1 + i).letter;
+        const result = list.reduce((sum, r) => sum + ((r.per[i] && r.per[i][role]) || 0), 0);
+        return { formula: `SUM(${col}${first}:${col}${last})`, result };
+      }), { formula: `SUM(${ws.getColumn(width).letter}${first}:${ws.getColumn(width).letter}${last})`, result: list.reduce((sum, r) => sum + r[key], 0) }];
+
+      // Styling: weekends shaded, totals tinted, numbers centred, light grid.
+      for (let rowNo = first; rowNo <= last + 1; rowNo++) {
+        const row = ws.getRow(rowNo);
+        for (let col = 1; col <= width; col++) {
+          const c = row.getCell(col);
+          c.border = { top: thin, left: thin, bottom: thin, right: thin };
+          if (col > L) c.alignment = { horizontal: "center" };
+          const dayIdx = col - L - 1;
+          if (dayIdx >= 0 && dayIdx < nDays && days[dayIdx].weekend) c.fill = fill(WEEKEND);
+          if (col === width) { c.fill = fill(TOTAL); c.font = { bold: true }; }
+          if (col > L && col < width && c.value !== null && rowNo <= last && role === "assistant") c.font = { color: { argb: RED }, bold: true };
+          if (col > L && col < width && c.value !== null && rowNo <= last && role === "coach") c.font = { color: { argb: NAVY }, bold: true };
+        }
+        if (rowNo === last + 1) row.eachCell(c => { c.font = { bold: true }; c.fill = fill(TOTAL); });
+      }
+      for (let i = 0; i < nDays; i++) if (days[i].weekend) ws.getCell(2, L + 1 + i).fill = fill(color === NAVY ? "FF39447A" : "FFA51A26");
+      ws.autoFilter = { from: { row: 2, column: 1 }, to: { row: 2, column: width } };
+    }
+
+    roleSheet("Coach sessions", "coach", NAVY);
+    roleSheet("Assistant sessions", "assistant", RED);
+
+    // Summary: one line per person (and branch); coach and assistant in separate columns.
+    const ws = wb.addWorksheet("Summary", { views: [{ state: "frozen", ySplit: 2 }] });
+    titleRow(ws, `Summary · ${scopeLabel} · ${monthLabel(month)}`, 6);
+    headerRow(ws, ["Name", "Branch", "Days attended", "Coach sessions", "Assistant sessions", "Approval"], NAVY);
+    [26, 18, 14, 15, 18, 22].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+    people.forEach((r, i) => {
+      ws.getRow(3 + i).values = [r.name, branchName(r.branch), r.days, r.asCoach, r.asAssistant,
+        r.approval ? `Approved ${new Date(r.approval.approved_at).toLocaleDateString("en-GB")}` : "Not approved"];
+    });
+    const sl = 2 + people.length;
+    ws.getRow(sl + 1).values = ["Total", "", "",
+      { formula: `SUM(D3:D${sl})`, result: people.reduce((x, r) => x + r.asCoach, 0) },
+      { formula: `SUM(E3:E${sl})`, result: people.reduce((x, r) => x + r.asAssistant, 0) }, ""];
+    for (let rowNo = 3; rowNo <= sl + 1; rowNo++) {
+      const row = ws.getRow(rowNo);
+      for (let col = 1; col <= 6; col++) {
+        const c = row.getCell(col);
+        c.border = { top: thin, left: thin, bottom: thin, right: thin };
+        if (col >= 3 && col <= 5) c.alignment = { horizontal: "center" };
+        if (col === 5 && rowNo <= sl) c.font = { color: { argb: RED } };
+        if (col === 6 && rowNo <= sl) c.font = { color: { argb: c.value === "Not approved" ? "FF5B6178" : "FF1F8A4C" }, bold: c.value !== "Not approved" };
+      }
+      if (rowNo === sl + 1) row.eachCell(c => { c.font = { bold: true }; c.fill = fill(TOTAL); });
+    }
+    ws.autoFilter = { from: { row: 2, column: 1 }, to: { row: 2, column: 6 } };
+
+    const buf = await wb.xlsx.writeBuffer();
+    const fileScope = all ? "all-branches" : branchName(scopeBranch()).toLowerCase().replace(/[^a-z0-9]+/g, "-");
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    a.download = `bfa-coach-attendance-${scopeLabel}-${month}.csv`;
+    a.href = URL.createObjectURL(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+    a.download = `bfa-coach-attendance-${fileScope}-${month}.xlsx`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  });
+    toast("Excel file downloaded.");
+  }
+  document.querySelectorAll("[data-export-excel]").forEach(btn => btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    const label = btn.textContent;
+    btn.textContent = "Preparing…";
+    try { await exportExcel(); }
+    catch (e) { toast("Couldn't create the Excel file: " + e.message); }
+    finally { btn.disabled = false; btn.textContent = label; }
+  }));
   $("print-btn").addEventListener("click", () => window.print());
   $("approve-all-btn").addEventListener("click", () => approve(null, scopeBranch()));
 
