@@ -1513,60 +1513,75 @@
       r.getCell(1).alignment = { horizontal: "left", vertical: "middle" };
     }
 
-    function roleSheet(sheetName, role, color) {
-      const lead = all ? ["Name", "Branch"] : ["Name"];
-      const L = lead.length, width = L + nDays + 1;
-      const ws = wb.addWorksheet(sheetName, { views: [{ state: "frozen", xSplit: L, ySplit: 2 }] });
-      titleRow(ws, `${sheetName} per day · ${scopeLabel} · ${monthLabel(month)}`, width);
-      headerRow(ws, [...lead, ...days.map(d => d.label), "Total"], color);
+    // One sheet for everyone: a row per person and role (Coach / Assistant), a column per day.
+    // Someone who did both gets two rows; the totals at the bottom keep the two roles apart.
+    function sessionsSheet() {
+      const lead = all ? ["Name", "Branch", "Role"] : ["Name", "Role"];
+      const L = lead.length, width = L + nDays + 1, roleCol = L;
+      const ws = wb.addWorksheet("Sessions per day", { views: [{ state: "frozen", xSplit: L, ySplit: 2 }] });
+      titleRow(ws, `Sessions per day · ${scopeLabel} · ${monthLabel(month)}`, width);
+      headerRow(ws, [...lead, ...days.map(d => d.label), "Total"], NAVY);
       ws.getColumn(1).width = 26;
       if (all) ws.getColumn(2).width = 18;
+      ws.getColumn(roleCol).width = 11;
       for (let i = 1; i <= nDays; i++) ws.getColumn(L + i).width = 5.2;
       ws.getColumn(width).width = 8;
+      const dayCol = i => ws.getColumn(L + 1 + i).letter;
+      const roleLetter = ws.getColumn(roleCol).letter;
 
-      const key = role === "coach" ? "asCoach" : "asAssistant";
-      const list = people.filter(r => r[key] > 0);
-      if (!list.length) {
-        ws.getCell(3, 1).value = role === "coach" ? "No coach sessions this month." : "No assistant sessions this month.";
-        return;
-      }
-      const first = 3;
-      list.forEach((r, i) => {
-        const rowNo = first + i;
-        const vals = r.per.map(e => (e && e[role]) ? e[role] : null);
-        const row = ws.getRow(rowNo);
-        row.values = [r.name, ...(all ? [branchName(r.branch)] : []), ...vals,
-          { formula: `SUM(${ws.getColumn(L + 1).letter}${rowNo}:${ws.getColumn(L + nDays).letter}${rowNo})`, result: r[key] }];
+      // Rows: each person (per branch), coach row first, then assistant row; only roles they did.
+      const lines = [];
+      people.forEach(r => {
+        if (r.asCoach) lines.push({ r, role: "coach" });
+        if (r.asAssistant) lines.push({ r, role: "assistant" });
       });
-      const last = first + list.length - 1;
-      const totalRow = ws.getRow(last + 1);
-      totalRow.values = ["Total", ...(all ? [""] : []), ...days.map((_, i) => {
-        const col = ws.getColumn(L + 1 + i).letter;
-        const result = list.reduce((sum, r) => sum + ((r.per[i] && r.per[i][role]) || 0), 0);
-        return { formula: `SUM(${col}${first}:${col}${last})`, result };
-      }), { formula: `SUM(${ws.getColumn(width).letter}${first}:${ws.getColumn(width).letter}${last})`, result: list.reduce((sum, r) => sum + r[key], 0) }];
-
-      // Styling: weekends shaded, totals tinted, numbers centred, light grid.
-      for (let rowNo = first; rowNo <= last + 1; rowNo++) {
+      const first = 3, last = first + lines.length - 1;
+      lines.forEach((ln, i) => {
+        const rowNo = first + i, { r, role } = ln;
+        const total = role === "coach" ? r.asCoach : r.asAssistant;
         const row = ws.getRow(rowNo);
+        row.values = [r.name, ...(all ? [branchName(r.branch)] : []), role === "coach" ? "Coach" : "Assistant",
+          ...r.per.map(e => (e && e[role]) ? e[role] : null),
+          { formula: `SUM(${dayCol(0)}${rowNo}:${dayCol(nDays - 1)}${rowNo})`, result: total }];
+        const color = role === "coach" ? NAVY : RED;
+        // A slightly stronger line where a new person starts.
+        const newPerson = i === 0 || lines[i - 1].r !== r;
         for (let col = 1; col <= width; col++) {
           const c = row.getCell(col);
-          c.border = { top: thin, left: thin, bottom: thin, right: thin };
+          c.border = { top: newPerson ? { style: "medium", color: { argb: "FFB8BED6" } } : thin, left: thin, bottom: thin, right: thin };
+          const di = col - L - 1;
+          if (di >= 0 && di < nDays && days[di].weekend) c.fill = fill(WEEKEND);
           if (col > L) c.alignment = { horizontal: "center" };
-          const dayIdx = col - L - 1;
-          if (dayIdx >= 0 && dayIdx < nDays && days[dayIdx].weekend) c.fill = fill(WEEKEND);
-          if (col === width) { c.fill = fill(TOTAL); c.font = { bold: true }; }
-          if (col > L && col < width && c.value !== null && rowNo <= last && role === "assistant") c.font = { color: { argb: RED }, bold: true };
-          if (col > L && col < width && c.value !== null && rowNo <= last && role === "coach") c.font = { color: { argb: NAVY }, bold: true };
+          if (col > L && col < width && c.value !== null) c.font = { color: { argb: color }, bold: true };
+          if (col === roleCol) c.font = { color: { argb: color }, bold: true };
+          if (col === width) { c.fill = fill(TOTAL); c.font = { bold: true, color: { argb: color } }; }
         }
-        if (rowNo === last + 1) row.eachCell(c => { c.font = { bold: true }; c.fill = fill(TOTAL); });
-      }
-      for (let i = 0; i < nDays; i++) if (days[i].weekend) ws.getCell(2, L + 1 + i).fill = fill(color === NAVY ? "FF39447A" : "FFA51A26");
+        if (!newPerson) { row.getCell(1).font = { color: { argb: "FF9AA0B8" } }; if (all) row.getCell(2).font = { color: { argb: "FF9AA0B8" } }; }
+      });
+
+      // Totals per day, one row per role (never added together).
+      [["coach", "Total coach", NAVY], ["assistant", "Total assistant", RED]].forEach(([role, label, color], k) => {
+        const rowNo = last + 1 + k;
+        const sumFor = i => lines.reduce((sum, ln) => sum + (ln.role === role && ln.r.per[i] ? ln.r.per[i][role] : 0), 0);
+        const name = role === "coach" ? "Coach" : "Assistant";
+        const range = col => `${col}${first}:${col}${Math.max(last, first)}`;
+        const row = ws.getRow(rowNo);
+        row.values = [label, ...(all ? [""] : []), name,
+          ...days.map((_, i) => ({ formula: `SUMIF(${range(roleLetter)},"${name}",${range(dayCol(i))})`, result: sumFor(i) })),
+          { formula: `SUMIF(${range(roleLetter)},"${name}",${range(ws.getColumn(width).letter)})`, result: people.reduce((x, r) => x + (role === "coach" ? r.asCoach : r.asAssistant), 0) }];
+        row.eachCell({ includeEmpty: true }, (c, col) => {
+          if (col > width) return;
+          c.fill = fill(TOTAL);
+          c.font = { bold: true, color: { argb: col === 1 ? "FF161C3F" : color } };
+          c.border = { top: k === 0 ? { style: "medium", color: { argb: NAVY } } : thin, left: thin, bottom: thin, right: thin };
+          if (col > L) c.alignment = { horizontal: "center" };
+        });
+      });
+      for (let i = 0; i < nDays; i++) if (days[i].weekend) ws.getCell(2, L + 1 + i).fill = fill("FF39447A");
       ws.autoFilter = { from: { row: 2, column: 1 }, to: { row: 2, column: width } };
     }
 
-    roleSheet("Coach sessions", "coach", NAVY);
-    roleSheet("Assistant sessions", "assistant", RED);
+    sessionsSheet();
 
     // Summary: one line per person (and branch); coach and assistant in separate columns.
     const ws = wb.addWorksheet("Summary", { views: [{ state: "frozen", ySplit: 2 }] });
